@@ -1,0 +1,12 @@
+# LaTex/Texmaker files #
+########################
+*.aux
+*.log
+*.gz
+*.bak
+*.toc
+
+# Zak's backup documenation #
+#  (from before using OOP)  #
+#############################
+v1

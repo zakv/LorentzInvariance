@@ -1,0 +1,7 @@
+# Shouldn't include the large data sets.
+*/*
+
+# Should add the generate_event_times.m
+# for each folder but ignore everything
+# else
+!*/generate_event_times.m

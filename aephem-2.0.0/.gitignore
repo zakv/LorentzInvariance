@@ -1,0 +1,4 @@
+# We don't want ton include anything
+# in this folder, except this file.
+*
+!.gitignore

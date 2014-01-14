@@ -1,0 +1,14 @@
+# I (zak) include an "old" directory for
+# old code that is unused but may be good
+# to keep around for reference, so we'll
+# ignore it
+old/
+
+# I was considering using JPL ephemerides
+# for the aephem stuff and I made a
+# directory to store them.  However, I
+# get a segfault whenever I try to read
+# them.  I'm keeping them around just in
+# case, but they shouldn't be in the git
+# repository
+Ephemerides/
