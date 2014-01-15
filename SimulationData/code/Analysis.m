@@ -12,6 +12,7 @@ classdef Analysis < handle
         N_RIGHT=Analysis.N_EVENTS-Analysis.N_LEFT; %Number of quip left data points
         RAW_DATA_SET_PREFIX='raw_data_set_';
         CALC_DATA_SET_PREFIX='calc_data_set_';
+        SIGNAL_DATA_SET_PREFIX='signal_data_set_';
         DATA_SET_PREFIX='data_set_';
         
         %Functions that calculate parameters of interest, each should take
@@ -55,23 +56,33 @@ classdef Analysis < handle
         %Dependent properties of instances of the Analysis Class that
         %should be hidden.
         
-        %RawDataSets/ and DataSets/
+        %RawDataSets/ and DataSets/ and SignalDataSets/
         raw_data_set_dir %Directory where all the Raw_Data_Sets are stored
         calc_data_set_dir %Directory where all the Calc_Data_Sets are stored
         data_set_dir %Directory where all the data sets are stored
-        
+        signal_data_set_root %Directory that contains all of the signal data set
+            %directories
+        signal_data_set_names %List of the names of the groups of signal data
+            %sets
+        signal_data_set_dirs %List of directories where signal data sets are 
+            %saved
+        signal_func_list %List of function handles used to add signals
+         
         %Charman table
         table_dir %Directory where all the tables are stored
         Charman_file_name %File name (including relative path)
     end
     
     methods
+        
         function self = Analysis(GENERATOR_NAME)
             %Initializes an Analysis object.
             
             %Properties that vary between instances
             self.set_GENERATOR_NAME(GENERATOR_NAME);
             self.data_set_list={};
+            self.signal_data_set_dirs={};
+            self.signal_func_list={};
             self.Charman_table=[];
             
             %Create subdirectories if necessary
@@ -80,6 +91,7 @@ classdef Analysis < handle
                 self.calc_data_set_dir; ...
                 self.data_set_dir; ...
                 self.table_dir; ...
+                self.signal_data_set_root; ...
                 };
             jMax_subdirectory=size(subdirectory_list,1);
             for j=1:jMax_subdirectory
@@ -142,7 +154,7 @@ classdef Analysis < handle
             %Generates the Raw_Data_Sets using the generate_event_times.m file
             %stored in self.data_set_root
             
-            disp('Generating raw data sets');
+            disp('Generating raw data sets...');
             
             %Make sure no other generate_event_times() is in path
             warning('off','MATLAB:rmpath:DirNotFound');
@@ -183,9 +195,6 @@ classdef Analysis < handle
             k_max=k; %just in case the above formula for k_max didn't work
             
             %Define some constants for parfor loop
-            data_set_root=self.data_set_root;
-            raw_data_set_dir=self.raw_data_set_dir;
-            calc_data_set_dir=self.calc_data_set_dir;
             save_data_set=@(data_set,index) ...
                 self.save_data_set(data_set,index);
             
@@ -199,11 +208,8 @@ classdef Analysis < handle
                 data_array(1:end,1)=generate_event_times(); %assign time data
                 data_array(1:end,2:3)=sim_data_slices{k}; %get t,z-positions
                 %Create and Save a Data_Set instance
-                data_set=Data_Set(k,data_set_root,raw_data_set_dir, ...
-                    calc_data_set_dir); 
+                data_set=Data_Set(self,k); 
                 data_set.create_raw_data_set(data_array);
-                data_set.save_raw_data_set();
-                data_set.free_ram();
                 save_data_set(data_set,k);
             end
             if close_pool_when_done==1
@@ -224,7 +230,7 @@ classdef Analysis < handle
         
         function [] = generate_calc_data_sets(self)
             %Generates and saves the Calc_Data_Set instances
-            disp('Generating calculated data sets');
+            disp('Generating calculated data sets...');
             tic;
             data_set_list=self.data_set_list;
             jMax=length(data_set_list);
@@ -238,8 +244,6 @@ classdef Analysis < handle
             parfor j=1:jMax
                 data_set=data_set_list{j};
                 data_set.create_calc_data_set();
-                data_set.save_calc_data_set();
-                data_set.unload_calc_data_set();
             end
             
             if close_pool_when_done==1
@@ -248,6 +252,99 @@ classdef Analysis < handle
             
             disp('Finished generating calculated data sets');
             fprintf('Generating calculated data sets took %0.2f seconds\n',toc);
+        end
+        
+        function [] = generate_signal_data_sets(self,signal_funcs, ...
+                signal_names,n_max)
+            %Creates signal_data_sets for a list of signal functions with a
+            %list of correspoinding names.
+            %   signal_funcs should be a list of function handles that take
+            %   a raw data set and return a new raw data set with a signal
+            %   added.  signal_names should be a list of corresponding
+            %   names for the signal_funcs which will be used when naming
+            %   directories and labeling plots.  jMax gives the maximum
+            %   number of data sets to apply this action to.
+            %   In the future, this should check for redundant calls to the
+            %   same function.  Should also have default arguments, then it
+            %   should be added to Analysis.run()
+            n_signal_funcs=length(signal_funcs);
+            if n_signal_funcs~=length(signal_names)
+                msgIdent='Analysis:generate_signal_data_sets:MismatchedLengths';
+                msgString='The lengths of the signal_funcs and signal_names lists';
+                msgString=[msgString,' must be the same.'];
+                error(msgIdent,msgString);
+            end
+            
+            if isempty(self.data_set_list)
+                evalc('self.load_data_sets()');
+            end
+            if isempty(self.data_set_list)
+                self.generate_raw_data_sets();
+            end
+            
+            if n_signal_funcs==1
+                fprintf('Generating signal data sets with group name %s...\n', ...
+                    signal_names{1});
+            else
+                names=signal_names{1};
+                for j=2:n_signal_funcs-1
+                    names=[names,sprintf(', %s',signal_names{j})]; %#ok<AGROW>
+                end
+                names=[names,sprintf(', and %s...\n',signal_names{end})];
+                out_string='Generating signal data sets with group names ';
+                out_string=[out_string,names];
+                disp(out_string)
+            end
+            tic;
+            
+            %Record index of first signal that needs to be calculated
+            j_start=length(self.signal_data_set_names)+1;
+            
+            %Append signal data set names and dirs to list and make dirs if
+            %necessary
+            kMax=length(signal_names);
+            for k=1:kMax
+                signal_func=signal_funcs{k};
+                self.signal_func_list{end+1}=signal_func;
+                signal_name=signal_names{k};
+                signal_data_set_dir= ...
+                    fullfile(self.signal_data_set_root,signal_name);
+                self.signal_data_set_names{end+1}=signal_name;
+                self.signal_data_set_dirs{end+1}=signal_data_set_dir;
+                if exist(signal_data_set_dir,'dir')~=7
+                    mkdir(signal_data_set_dir);
+                end
+            end
+            
+            %Record the last index of the signals that need to be
+            %calculated
+            j_end=length(self.signal_data_set_names);
+            
+            %Time for parallelization
+            data_set_list=self.data_set_list;
+            n_max=min(length(data_set_list),n_max);
+            
+            close_pool_when_done=0;
+            if matlabpool('size')==0
+                matlabpool('open')
+                close_pool_when_done=1;
+            end
+            
+            file_name_strings=strcat(Analysis.SIGNAL_DATA_SET_PREFIX,'%d.mat');
+            file_name_strings=fullfile(self.signal_data_set_dirs,file_name_strings);
+            parfor j=1:n_max
+                data_set=data_set_list{j};
+                data_set.create_signal_data_set(signal_funcs, ...
+                    file_name_strings,j_start,j_end);
+            end
+            
+            if close_pool_when_done==1
+%                 matlabpool('close')
+            end
+            
+            disp('Finished generating signal data sets');
+            fprintf('Generating signal data sets took %0.2f seconds\n',toc);
+            
         end
         
         function [] = generate_Charman_table(self)
@@ -267,7 +364,7 @@ classdef Analysis < handle
             end
             jMax_data_set=length(data_set_list);
             
-            disp('Generating Charman table');
+            disp('Generating Charman table...');
             addpath ../../CharmanUltra/
             tic;
             
@@ -401,7 +498,7 @@ classdef Analysis < handle
                 self.generate_Charman_table()
             end
             
-            disp('Generating Charman histograms');
+            disp('Generating Charman histograms...');
             tic;
             data_strings={ ... %data_type calue then name for plot
                 'z-position','z-position'; ...
@@ -471,7 +568,7 @@ classdef Analysis < handle
         function [] = load_data_sets(self)
             %Loads Data_Sets into memory
             
-            disp('Loading data sets');
+            disp('Loading data sets...');
             tic;
             data_set_names=self.get_data_set_names();
             n_elements=numel(data_set_names);
@@ -479,10 +576,16 @@ classdef Analysis < handle
                 self.data_set_list={};
             else
                 self.data_set_list=cell(1,n_elements);
+                indices=zeros(1,n_elements);
                 for j=1:n_elements
                     file_name=data_set_names{j};
-                    self.data_set_list{j}=load_mat(file_name);
+                    data_set=load_mat(file_name);
+                    data_set.set_analysis_parent(self);
+                    self.data_set_list{j}=data_set;
+                    indices(j)=data_set.index;
                 end
+                [~,order]=sort(indices);
+                self.data_set_list=self.data_set_list(order);
             end
             disp('Finished loading data sets');
             fprintf('Loading data sets took %0.2f seconds\n',toc);
@@ -549,6 +652,8 @@ classdef Analysis < handle
                 'RawDataSets');
             self.calc_data_set_dir=fullfile(self.data_set_root, ...
                 'CalcDataSets');
+            self.signal_data_set_root=fullfile(self.data_set_root, ...
+                'SignalDataSets');
             self.data_set_dir=fullfile(self.data_set_root,'DataSets');
             self.table_dir=fullfile(self.data_set_root,'Tables');
             self.Charman_file_name=fullfile(self.table_dir,'Charman_table.mat');
@@ -557,6 +662,7 @@ classdef Analysis < handle
         function [] = save_data_set(self,data_set,index)
             %Saves a Data_Set object
             if isempty(data_set.raw_data_set) && isempty(data_set.calc_data_set)
+                data_set.set_analysis_parent([]); %So save_mat doesn't save the parent as well
                 OUTPUT_FILE_ROOT=fullfile(self.data_set_dir, ...
                     Analysis.DATA_SET_PREFIX);
                 out_file_name=strcat(OUTPUT_FILE_ROOT,int2str(index),'.mat');
