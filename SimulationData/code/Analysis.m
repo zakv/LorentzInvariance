@@ -490,7 +490,12 @@ classdef Analysis < handle
         
         function data_set = get_one_data_set(self)
             %Returns one new Data_Set.  Useful for debugging Data_Set.m
-            self.generate_raw_data_sets();
+            if isempty(self.data_set_list)
+                evalc('self.load_data_sets()');
+            end
+            if isempty(self.data_set_list)
+                self.generate_raw_data_sets();
+            end
             data_set=self.data_set_list{1};
         end
         
