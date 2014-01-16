@@ -3,7 +3,7 @@ function [ data ] = load_mat( file_name )
 %   file_name should be the name of the output file, optionally inclduing
 %   the file extension '.mat'.  Returns the data
 
-    if ~strcmp(file_name(end-3:end),'.mat')
+    if length(file_name)<4 || ~strcmp(file_name(end-3:end),'.mat')
         file_name=strcat(file_name,'.mat');
     end
     returned_object=load(file_name,'data');

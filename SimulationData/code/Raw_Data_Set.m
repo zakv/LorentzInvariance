@@ -1,4 +1,4 @@
-classdef Raw_Data_Set < handle
+classdef Raw_Data_Set
     %Stores all the raw data for one data set
     %   Records date times, wait times, and z-positions for left and right
     %   data.

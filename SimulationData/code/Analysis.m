@@ -40,6 +40,8 @@ classdef Analysis < handle
             'LargeSimData.mat'); %Tracer output file
         GENERATOR_NAME %Name for generate_event_times() function
         data_set_list %List of Data_Set objects
+        signal_group_list %List of the instances signal groups, each of which is
+            %a group of raw data sets with a signl added
         %Data Tables
         Charman_table %Results from Andy's algorithms
     end
@@ -62,11 +64,7 @@ classdef Analysis < handle
         data_set_dir %Directory where all the data sets are stored
         signal_data_set_root %Directory that contains all of the signal data set
             %directories
-        signal_data_set_names %List of the names of the groups of signal data
-            %sets
-        signal_data_set_dirs %List of directories where signal data sets are 
-            %saved
-        signal_func_list %List of function handles used to add signals
+        signal_group_file_name %File name to save the signal_group_list
          
         %Charman table
         table_dir %Directory where all the tables are stored
@@ -81,8 +79,7 @@ classdef Analysis < handle
             %Properties that vary between instances
             self.set_GENERATOR_NAME(GENERATOR_NAME);
             self.data_set_list={};
-            self.signal_data_set_dirs={};
-            self.signal_func_list={};
+            self.signal_group_list={};
             self.Charman_table=[];
             
             %Create subdirectories if necessary
@@ -104,9 +101,14 @@ classdef Analysis < handle
             %Load Data_Sets in case they've already been generated
             %self.load_data_sets();
             
-            %Load Charman table if there is a saved copy
+            %Load Charman_table if there is a saved copy
             if self.Charman_table_file_exists()
-                self.load_Charman_table()
+                self.load_Charman_table();
+            end
+            
+            %Load signal_group_list list if there is a saved copy
+            if self.signal_group_file_exists()
+                self.load_signal_group_list();
             end
         end
         
@@ -254,75 +256,11 @@ classdef Analysis < handle
             fprintf('Generating calculated data sets took %0.2f seconds\n',toc);
         end
         
-        function [] = generate_signal_data_sets(self,signal_funcs, ...
-                signal_names,n_max)
-            %Creates signal_data_sets for a list of signal functions with a
-            %list of correspoinding names.
-            %   signal_funcs should be a list of function handles that take
-            %   a raw data set and return a new raw data set with a signal
-            %   added.  signal_names should be a list of corresponding
-            %   names for the signal_funcs which will be used when naming
-            %   directories and labeling plots.  jMax gives the maximum
-            %   number of data sets to apply this action to.
-            %   In the future, this should check for redundant calls to the
-            %   same function.  Should also have default arguments, then it
-            %   should be added to Analysis.run()
-            n_signal_funcs=length(signal_funcs);
-            if n_signal_funcs~=length(signal_names)
-                msgIdent='Analysis:generate_signal_data_sets:MismatchedLengths';
-                msgString='The lengths of the signal_funcs and signal_names lists';
-                msgString=[msgString,' must be the same.'];
-                error(msgIdent,msgString);
-            end
-            
-            if isempty(self.data_set_list)
-                evalc('self.load_data_sets()');
-            end
-            if isempty(self.data_set_list)
-                self.generate_raw_data_sets();
-            end
-            
-            if n_signal_funcs==1
-                fprintf('Generating signal data sets with group name %s...\n', ...
-                    signal_names{1});
-            else
-                names=signal_names{1};
-                for j=2:n_signal_funcs-1
-                    names=[names,sprintf(', %s',signal_names{j})]; %#ok<AGROW>
-                end
-                names=[names,sprintf(', and %s...\n',signal_names{end})];
-                out_string='Generating signal data sets with group names ';
-                out_string=[out_string,names];
-                disp(out_string)
-            end
+        function [] = generate_signal_data_sets(self)
+            %Creates signal data sets for each element of
+            %self.signal_group_list
+            disp('Generating signal data sets for each signal group...');
             tic;
-            
-            %Record index of first signal that needs to be calculated
-            j_start=length(self.signal_data_set_names)+1;
-            
-            %Append signal data set names and dirs to list and make dirs if
-            %necessary
-            kMax=length(signal_names);
-            for k=1:kMax
-                signal_func=signal_funcs{k};
-                self.signal_func_list{end+1}=signal_func;
-                signal_name=signal_names{k};
-                signal_data_set_dir= ...
-                    fullfile(self.signal_data_set_root,signal_name);
-                self.signal_data_set_names{end+1}=signal_name;
-                self.signal_data_set_dirs{end+1}=signal_data_set_dir;
-                if exist(signal_data_set_dir,'dir')~=7
-                    mkdir(signal_data_set_dir);
-                end
-            end
-            
-            %Record the last index of the signals that need to be
-            %calculated
-            j_end=length(self.signal_data_set_names);
-            
-            %Time for parallelization
-            data_set_list=self.data_set_list;
-            n_max=min(length(data_set_list),n_max);
             
             close_pool_when_done=0;
             if matlabpool('size')==0
@@ -330,12 +268,29 @@ classdef Analysis < handle
                 close_pool_when_done=1;
             end
             
-            file_name_strings=strcat(Analysis.SIGNAL_DATA_SET_PREFIX,'%d.mat');
-            file_name_strings=fullfile(self.signal_data_set_dirs,file_name_strings);
-            parfor j=1:n_max
-                data_set=data_set_list{j};
-                data_set.create_signal_data_set(signal_funcs, ...
-                    file_name_strings,j_start,j_end);
+            %Figure out  what's the most data_sets needed for any signal
+            %group.  Also recreate any directories that may have been
+            %deleted.
+            jMax_data_sets=0;
+            n_groups=length(self.signal_group_list);
+            for j=1:n_groups
+                signal_group=self.signal_group_list{j};
+                jMax_data_sets=max(jMax_data_sets,signal_group.n_sets);
+                if exist(signal_group.signal_dir,'dir')~=7
+                    mkdir(signal_group.signal_dir);
+                end
+            end
+            
+            data_set_list=self.data_set_list(1:jMax_data_sets);
+            signal_group_list=self.signal_group_list;
+            parfor j1=1:jMax_data_sets
+                data_set=data_set_list{j1};
+                data_set.load_raw_data_set();
+                for j2=1:n_groups
+                    signal_group=signal_group_list{j2}; %#ok<PFBNS>
+                    signal_group.generate_signal_data_set(data_set);
+                end
+                data_set.unload_raw_data_set();
             end
             
             if close_pool_when_done==1
@@ -618,6 +573,51 @@ classdef Analysis < handle
             file_name); 
         end
         
+        function [] = add_signal_group(self,signal_func,signal_name,n_sets)
+            %Adds a signal group with the given data to
+            %self.signal_group_list
+             %   signal_func should be the handle to a function that takes
+             %   a raw_data_set as an argument and returns a signal data
+             %   set (which is a raw_data_set_instance with a signal
+             %   added).
+            %   In future should make sure redundant function are not
+            %   added.  Also need a delete_signal_group method.
+            signal_group=Signal_Group(self,signal_func,signal_name,n_sets);
+            self.signal_group_list{end+1}=signal_group;
+            self.save_signal_group_list();
+        end
+        
+        function [] = save_signal_group_list(self)
+            %Save self.signal_group_list to the self.signal_data_set_root
+            %directory
+            
+            %Erase analysis parent so the analysis instance does not get
+            %saved
+            jMax=length(self.signal_group_list);
+            for j=1:jMax
+                signal_group=self.signal_group_list{j};
+                signal_group.set_analysis_parent([]);
+            end
+            save_mat(self.signal_group_file_name,self.signal_group_list);
+        end
+        
+        function [] = load_signal_group_list(self)
+            %Loads the signal_group_list from the hard drive
+            if exist(self.signal_group_file_name,'file')==2
+                self.signal_group_list=load_mat(self.signal_group_file_name);
+                %Set this analysis instance as the parent
+                jMax=length(self.signal_group_list);
+                for j=1:jMax
+                    signal_group=self.signal_group_list{j};
+                    signal_group.set_analysis_parent(self);
+                end
+            else
+                msgIdent='Analysis:load_signal_group_list:NoSavedList';
+                msgString='No signal_group_list is saved';
+                error(msgIdent,msgString);
+            end
+        end
+        
     end %End of methods
     
     methods (Static)
@@ -657,6 +657,8 @@ classdef Analysis < handle
             self.data_set_dir=fullfile(self.data_set_root,'DataSets');
             self.table_dir=fullfile(self.data_set_root,'Tables');
             self.Charman_file_name=fullfile(self.table_dir,'Charman_table.mat');
+            file_name='signal_group_list.mat';
+            self.signal_group_file_name=fullfile(self.signal_data_set_root,file_name);
         end
                 
         function [] = save_data_set(self,data_set,index)
@@ -687,6 +689,15 @@ classdef Analysis < handle
             %Returns true or false depending on whether or not the
             %Charman_table file exists
             if exist(self.Charman_file_name,'file')==2
+                bool=true;
+            else
+                bool=false;
+            end
+        end
+        
+        function bool = signal_group_file_exists(self)
+            %Checks if there is a saved signal_group_list file
+            if exist(self.signal_group_file_name,'file')==2
                 bool=true;
             else
                 bool=false;

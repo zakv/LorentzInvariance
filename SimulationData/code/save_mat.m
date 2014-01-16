@@ -3,7 +3,7 @@ function [ ] = save_mat( file_name, data ) %#ok<INUSD>
 %   file_name should be the name of the output file, optionally inclduing
 %   the file extension '.mat'.
 
-    if ~strcmp(file_name(end-3:end),'.mat')
+    if length(file_name)<4 || ~strcmp(file_name(end-3:end),'.mat')
         file_name=strcat(file_name,'.mat');
     end
     save(file_name,'data');
