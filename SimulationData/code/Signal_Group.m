@@ -67,6 +67,21 @@ classdef Signal_Group < handle
             %set for this signal group (assuming they've been generated).
             data_set_list=self.analysis_parent.data_set_list(1:self.n_sets);
         end
+        
+        function set_n_sets(self,n_sets)
+            %Updates self.n_sets and calls
+            %analysis_parent.generate_signal_data_sets()
+            analysis=self.analysis_parent;
+            
+            max_sets=length(analysis.data_set_list);
+            if max_sets==0
+                analysis.load_data_sets();
+                max_sets=length(analysis.data_set_list);
+            end
+            self.n_sets=min(n_sets,max_sets);
+            
+            analysis.generate_signal_data_sets();
+        end
             
     end
     
