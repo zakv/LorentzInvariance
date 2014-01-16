@@ -573,17 +573,18 @@ classdef Analysis < handle
             file_name); 
         end
         
-        function [] = add_signal_group(self,signal_func,varargin)%signal_name,n_sets)
+        function [] = add_signal_group(self,signal_func,varargin)
             %Adds a signal group with the given data to
             %self.signal_group_list
              %   signal_func should be the handle to a function that takes
              %   a raw_data_set as an argument and returns a signal data
              %   set (which is a raw_data_set_instance with a signal
              %   added).
-            %   In future should make sure redundant function are not
-            %   added.  Also need a delete_signal_group method.
-            %   Furthermore this should have default arguments
-            %   func2str(signal_func) and n_sets=max(10% or 1000)
+            %   You can also specify the signal_name or n_sets by passing
+            %   keyword arguments.  signal_name is the name used to
+            %   identify the signal function and n_sets is the number of
+            %   data sets to apply it to.  If n_sets is larger than the
+            %   number of data sets, all data sets will be used.
             
             %Make sure data sets are loaded
             if isempty(self.data_set_list)
@@ -655,9 +656,53 @@ classdef Analysis < handle
                 end
             end
             
+            %Actually create signal_group, add it to the list, and create
+            %its directory
             signal_group=Signal_Group(self,signal_func,signal_name,n_sets);
             self.signal_group_list{end+1}=signal_group;
+            if exist(signal_group.signal_dir,'dir')~=7
+                mkdir(signal_group.signal_dir);
+            end
             self.save_signal_group_list();
+        end
+        
+        function [] = delete_signal_group(self,signal_name)
+            %Deletes the signal_group
+            jMax=length(self.signal_group_list);
+            desired_signal_group=[];
+            j=1;
+            while j<=jMax && isempty(desired_signal_group)
+                signal_group=self.signal_group_list{j};
+                if strcmp(signal_name,signal_group.signal_name)
+                    desired_signal_group=signal_group;
+                    signal_group_index=j;
+                end
+                j=j+1;
+            end
+            
+            if isempty(desired_signal_group)
+                msgIdent='Analysis:delete_signal_group:InvalidSignalName';
+                msgString='No signal group with signal anme %s exists';
+                error(msgIdent,msgString,signal_name);
+            end
+            signal_group=desired_signal_group;
+            
+            %Remove directrory if it exists
+            if exist(signal_group.signal_dir,'dir')==7
+                rmdir(signal_group.signal_dir,'s');
+            end
+            
+            %Delete its rows for all relevant data_set.signal_table
+            jMax=signal_group.n_sets;
+            for j=1:jMax
+                data_set=self.data_set_list{j};
+                if ismember(signal_name,data_set.signal_table.Properties.RowNames)
+                    data_set.signal_table(signal_name,:)=[];
+                end
+            end
+            
+            %Delete from self.signal_group_list
+            self.signal_group_list(signal_group_index)=[];
         end
         
         function [] = save_signal_group_list(self)
