@@ -573,7 +573,7 @@ classdef Analysis < handle
             file_name); 
         end
         
-        function [] = add_signal_group(self,signal_func,signal_name,n_sets)
+        function [] = add_signal_group(self,signal_func,varargin)%signal_name,n_sets)
             %Adds a signal group with the given data to
             %self.signal_group_list
              %   signal_func should be the handle to a function that takes
@@ -582,6 +582,79 @@ classdef Analysis < handle
              %   added).
             %   In future should make sure redundant function are not
             %   added.  Also need a delete_signal_group method.
+            %   Furthermore this should have default arguments
+            %   func2str(signal_func) and n_sets=max(10% or 1000)
+            
+            %Make sure data sets are loaded
+            if isempty(self.data_set_list)
+                evalc('self.load_data_sets()');
+            end
+            if isempty(self.data_set_list)
+                self.generate_raw_data_sets();
+            end
+            
+            %Default values
+            signal_name=func2str(signal_func);
+            n_sets=max( 0.1*length(self.data_set_list),1000);
+            
+            %Interpret input
+            nVarargs=length(varargin);
+            do_while_loop=false;
+            if nVarargs==1
+                signal_name=varargin{1};
+            elseif nVarargs==2
+                if ismember(varargin{1},{'signal_name','n_sets'})
+                    do_while_loop=true;
+                else
+                    signal_name=varargin{1};
+                    n_sets=varargin{2};
+                end
+            else
+                do_while_loop=true;
+            end
+            
+            if do_while_loop
+            j=1;
+                while j<=nVarargs
+                    if strcmp(varargin{j},'signal_name')
+                        signal_name=varargin{j+1};
+                        j=j+2;
+                    elseif strcmp(varargin{j},'n_sets')
+                        n_sets=varargin{j+1};
+                        j=j+2;
+                    else
+                        msgIdent='Analysis:add_signal_group:InvalidArguments';
+                        msgString='Invalid function call';
+                        error(msgIdent,msgString);
+                    end
+                end
+            end
+            
+            
+            
+            n_sets=floor(n_sets); %make sure it's an integer
+            
+            %Make sure signal_func and signal_name aren't already used
+            jMax=length(self.signal_group_list);
+            for j=1:jMax
+                signal_group=self.signal_group_list{j};
+                handles_equal=isequal(signal_func,signal_group.signal_func) ;
+                strings_equal=strcmp( func2str(signal_func), ...
+                    func2str(signal_group.signal_func) );
+                names_equal=strcmp(signal_name,signal_group.signal_name);
+                if handles_equal || strings_equal
+                    msgIdent='Analysis:add_signal_group:FuncAlreadyAdded';
+                    msgString='The given function %s is already in ';
+                    msgString=[msgString,'self.signal_group_list']; %#ok<AGROW>
+                    error(msgIdent,msgString,func2str(signal_func));
+                elseif names_equal
+                    msgIdent='Analysis:add_signal_group:NameAlreadyAdded';
+                    msgString='The given function name %s is already in ';
+                    msgString=[msgString,'self.signal_group_list']; %#ok<AGROW>
+                    error(msgIdent,msgString,signal_name);
+                end
+            end
+            
             signal_group=Signal_Group(self,signal_func,signal_name,n_sets);
             self.signal_group_list{end+1}=signal_group;
             self.save_signal_group_list();
@@ -598,7 +671,16 @@ classdef Analysis < handle
                 signal_group=self.signal_group_list{j};
                 signal_group.set_analysis_parent([]);
             end
+            
+            %Save it
             save_mat(self.signal_group_file_name,self.signal_group_list);
+            
+            %Reassign analysis_parent
+            jMax=length(self.signal_group_list);
+            for j=1:jMax
+                signal_group=self.signal_group_list{j};
+                signal_group.set_analysis_parent(self);
+            end
         end
         
         function [] = load_signal_group_list(self)
