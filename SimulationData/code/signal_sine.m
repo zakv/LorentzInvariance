@@ -22,27 +22,38 @@ end
 
 omega=2*pi/period;
 
-date_times=[ ...
-    raw_data_set.left_date_times;
-    raw_data_set.right_date_times; ...
-    ];
+left_date_times=raw_data_set.left_date_times;
+right_date_times=raw_data_set.right_date_times;
 
-wait_times=[ ...
-    raw_data_set.left_wait_times; ...
-    raw_data_set.right_wait_times; ...
-    ];
+left_wait_times=raw_data_set.left_wait_times;
+right_wait_times=raw_data_set.right_wait_times;
 
-z_positions=[ ...
-    raw_data_set.left_z_positions; ...
-    raw_data_set.right_z_positions; ...
-    ];
+left_z_positions=raw_data_set.left_z_positions;
+right_z_positions=raw_data_set.right_z_positions;
 
 %Add signal
-sine_vals=sin(omega*date_times+phase);
-wait_times=wait_times+t_amplitude*sine_vals;
-z_positions=z_positions+z_amplitude*sine_vals;
+left_sine_vals=sin(omega*left_date_times+phase);
+left_wait_times=left_wait_times+t_amplitude*left_sine_vals;
+left_z_positions=left_z_positions+z_amplitude*left_sine_vals;
 
-signal_data_set=Raw_Data_Set([date_times,wait_times,z_positions]);
+right_sine_vals=sin(omega*right_date_times+phase);
+right_wait_times=right_wait_times+t_amplitude*right_sine_vals;
+right_z_positions=right_z_positions-z_amplitude*right_sine_vals;
+
+%Combine back into a raw data set
+top=[ ...
+    left_date_times, ...
+    left_wait_times, ...
+    left_z_positions, ...
+    ];
+
+bottom=[ ...
+    right_date_times, ...
+    right_wait_times, ...
+    right_z_positions, ...
+    ];
+    
+signal_data_set=Raw_Data_Set([top;bottom]);
 
 end
 
