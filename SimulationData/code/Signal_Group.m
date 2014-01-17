@@ -75,6 +75,15 @@ classdef Signal_Group < handle
             %Creates a table with results from the two Charman algorithms
             %for periods of both day and year
             
+            %Do not generate table if it already exists and has entries for
+            %all the data sets
+            if ~isempty(self.Charman_table)
+                n_data_sets_done=length( unique(self.Charman_table.data_index) );
+                if n_data_sets_done>=self.n_sets
+                    return
+                end
+            end
+            
             data_set_list=self.get_data_set_list();
             if isempty(data_set_list)
                 msgIdent='Signal_Group:generate_Charman_table:NoDataSets';
