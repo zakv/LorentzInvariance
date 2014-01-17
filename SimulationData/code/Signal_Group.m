@@ -8,6 +8,9 @@ classdef Signal_Group < handle
         signal_dir %Directory that stores all of the signal data sets
         file_name_string %Name of files with '%d' in place of index (with path)
         n_sets %Number of signal data sets to make
+        table_dir %Directory where tables are stored
+        Charman_table %Results from Andy's algorithms
+        Charman_file_name %File name (including relative path)
     end
     
     methods
@@ -22,10 +25,16 @@ classdef Signal_Group < handle
             self.file_name_string=fullfile(self.signal_dir,name_string);
             max_sets=length(analysis_parent.data_set_list);
             self.n_sets=min(n_sets,max_sets);
+            self.table_dir=fullfile(analysis_parent.table_dir,self.signal_name);
+            self.Charman_table=[];
+            self.Charman_file_name=fullfile(self.table_dir,'Charman_table.mat');
             
-            %Make its directory.
+            %Make its directories.
             if exist(self.signal_dir,'dir')~=7
                 mkdir(self.signal_dir);
+            end
+            if exist(self.table_dir,'dir')~=7
+                mkdir(self.table_dir);
             end
         end
         
@@ -62,6 +71,108 @@ classdef Signal_Group < handle
             end
         end
         
+        function [] = generate_Charman_table_section(self,data_set)
+            %Creates a table with results from the two Charman algorithms
+            %for periods of both day and year
+            
+%             addpath ../../CharmanUltra/
+            weighted_average=Analysis.weighted_average;
+            
+            algorithm_list={ ...
+                @(date_times,data,period)CharmanII(date_times,data,period), 'Charman II';
+                @(date_times,data,period)CharmanIV(date_times,data,period), 'Charman IV';
+                };
+            period_list={ ...
+                'day','day';
+                'year','year';
+                };
+            data_type_list={ ...
+                1,'z-position'; ...
+                2,'wait_time'; ...
+                };
+            direction_list={ ...
+                1,'left'; ...
+                2,'right'; ...
+                3,'averaged'; ...
+                };
+            jMax_algorithm=size(algorithm_list,1);
+            jMax_period=size(period_list,1);
+            jMax_data_type=size(data_type_list,1);
+            
+            %Initialize variables that are divided among workers
+%             weighted_average=@self.weighted_average;
+%             data_set_index_cell_array=cell(jMax_data_set,1);
+%             algorithm_cell_array=cell(jMax_data_set,1);
+%             period_cell_array=cell(jMax_data_set,1);
+%             data_type_cell_array=cell(jMax_data_type);
+%             direction_cell_array=cell(jMax_data_set,1);
+%             A_1_cell_array=cell(jMax_data_set,1);
+%             parfor j_data_set_index=1:jMax_data_set
+
+                j_data_set_index=data_set.index;
+                raw_data_set=data_set.raw_data_set;
+                
+                rows_per_chunk=jMax_algorithm*jMax_period*jMax_data_type*3; %3 for direction
+                data_set_index_chunk=zeros(rows_per_chunk,1);
+                algorithm_chunk=cell(rows_per_chunk,1);
+                period_chunk=cell(rows_per_chunk,1);
+                data_type_chunk=cell(rows_per_chunk,1);
+                direction_chunk=cell(rows_per_chunk,1);
+                A_1_chunk=zeros(rows_per_chunk,1);
+                j=1;
+                for j_data=1:jMax_data_type %wait_times or z-position
+                    data_type_name=data_type_list{j_data,2};
+                    for j_algorithm=1:jMax_algorithm
+                        algorithm=algorithm_list{j_algorithm,1};
+                        algorithm_name=algorithm_list{j_algorithm,2};
+                        for j_period=1:jMax_period
+                            period=period_list{j_period,1};
+                            period_name=period_list{j_period,2};
+                            mini_A_1_array=zeros(1,2); %for averaging left/right data
+                            for j_direction=1:2 %left then right, then averaged below
+                                %j=(j_algorithm-1)*jMax_algorithm+j_period;
+                                %j=(j-1)*3;
+                                data_set_index_chunk(j)=j_data_set_index;
+                                algorithm_chunk{j}=algorithm_name;
+                                period_chunk{j}=period_name;
+                                data_type_chunk{j}=data_type_name;
+                                direction_chunk{j}=direction_list{j_direction,2};
+                                date_times=raw_data_set.get_date_times(j_direction);
+                                data=raw_data_set.get_data(j_data,j_direction);
+                                mini_A_1_array(j_direction)=algorithm(date_times,data,period);
+                                A_1_chunk(j)=mini_A_1_array(j_direction);
+                                j=j+1;
+                            end
+                            %averated left and right
+                            j_direction=j_direction+1;
+                            data_set_index_chunk(j)=j_data_set_index;
+                            algorithm_chunk{j}=algorithm_name;
+                            period_chunk{j}=period_name;
+                            data_type_chunk{j}=data_type_name;
+                            direction_chunk{j}=direction_list{j_direction,2};
+                            A_1_chunk(j)=weighted_average(mini_A_1_array(1),mini_A_1_array(2));
+                            j=j+1;
+                        end
+                    end
+                end
+%                 data_set_index_cell_array{j_data_set_index}=data_set_index_chunk;
+%                 algorithm_cell_array{j_data_set_index}=algorithm_chunk;
+%                 period_cell_array{j_data_set_index}=period_chunk;
+%                 data_type_cell_array{j_data_set_index}=data_type_chunk;
+%                 direction_cell_array{j_data_set_index}=direction_chunk;
+%                 A_1_cell_array{j_data_set_index}=A_1_chunk;
+%             end
+            data_index=data_set_index_chunk;
+            algorithm=categorical(algorithm_chunk);
+            period=categorical(period_chunk);
+            data_type=categorical(data_type_chunk);
+            direction=categorical(direction_chunk);
+            A_1=A_1_chunk;
+            
+            Charman_table_chunk=table(data_index,data_type,algorithm,period,direction,A_1);
+            self.Charman_table=[self.Charman_table;Charman_table_chunk];
+        end
+        
         function data_set_list = get_data_set_list(self)
             %Returns a list of the data_sets that should have a signal data
             %set for this signal group (assuming they've been generated).
@@ -82,7 +193,43 @@ classdef Signal_Group < handle
             
             analysis.generate_signal_data_sets();
         end
+        
+        function [] = save_Charman_table(self)
+            %Saves the Charman table to the Tables subdirectory
+            if ~isempty(self.Charman_table)
+                save_mat(self.Charman_file_name,self.Charman_table);
+            else
+                msgIdent='Signal_Group:save_Charman_table:TableEmpty';
+                msgString='Cannot save Charman_table; it is currently empty';
+                error(msgIdent,msgString);
+            end
+        end
+        
+        function [] = load_Charman_table(self)
+            %Loads the Charman table from the Tables subdirectory
+            if self.Charman_table_file_exists()
+                self.Charman_table=load_mat(self.Charman_file_name);
+            else
+                msgIdent='Signal_Group:load_Charman_table:NoSavedTable';
+                msgString='No Charman_table is saved';
+                error(msgIdent,msgString);
+            end
+        end
             
+    end %End methods
+    
+    methods (Hidden)
+        
+        function bool = Charman_table_file_exists(self)
+            %Returns true or false depending on whether or not the
+            %Charman_table file exists
+            if exist(self.Charman_file_name,'file')==2
+                bool=true;
+            else
+                bool=false;
+            end
+        end
+        
     end
     
 end
