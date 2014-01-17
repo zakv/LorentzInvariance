@@ -42,8 +42,6 @@ classdef Analysis < handle
         data_set_list %List of Data_Set objects
         signal_group_list %List of the instances signal groups, each of which is
             %a group of raw data sets with a signl added
-        %Data Tables
-%         Charman_table %Results from Andy's algorithms
     end
     
     properties (SetAccess=private)
@@ -66,9 +64,8 @@ classdef Analysis < handle
             %directories
         signal_group_file_name %File name to save the signal_group_list
          
-        %Charman table
+        %Tables
         table_dir %Directory where all the tables are stored
-%         Charman_file_name %File name (including relative path)
     end
     
     methods
@@ -80,7 +77,6 @@ classdef Analysis < handle
             self.set_GENERATOR_NAME(GENERATOR_NAME);
             self.data_set_list={};
             self.signal_group_list={};
-%             self.Charman_table=[];
             
             %Create subdirectories if necessary
             subdirectory_list={ ...
@@ -99,12 +95,8 @@ classdef Analysis < handle
             end
             
             %Load Data_Sets in case they've already been generated
-            %self.load_data_sets();
-            
-            %Load Charman_table if there is a saved copy
-%             if self.Charman_table_file_exists()
-%                 self.load_Charman_table();
-%             end
+            %self.load_data_sets(); %Takes a long time and isn't
+                %usually necessary
             
             %Load signal_group_list list if there is a saved copy
             if self.signal_group_file_exists()
@@ -121,23 +113,32 @@ classdef Analysis < handle
             end
             
             self.generate_raw_data_sets();
+            display(self.data_set_list{1});
             disp(' ');
             disp(' ');
             
             self.generate_calc_data_sets();
+            display(self.data_set_list{1});
             disp(' ');
             disp(' ');
             
             self.add_signal_group(@signal_null,'null');
+            self.add_signal_group(@(raw_data_set) ...
+                signal_sine(raw_data_set,0.01,0.01,'day',0),'daily sine');
+%             self.add_signal_group(@(raw_data_set) ...
+%                 signal_sine(raw_data_set,0.01,0.01,'year',0),'yearly sine');
             self.generate_signal_data_sets();
+            display(self.data_set_list{1});
             disp(' ');
             disp(' ');
             
             self.generate_Charman_tables();
+            display(self.data_set_list{1});
             disp(' ');
             disp(' ');
             
             self.generate_Charman_histograms();
+            display(self.data_set_list{1});
             disp(' ');
             disp(' ');
             
@@ -177,6 +178,11 @@ classdef Analysis < handle
             warning('on','MATLAB:rmpath:DirNotFound');
             addpath(self.data_set_root);
             
+            %Erase all data_sets and other dependent data (this also fixes
+            %issues with generating signal data sets caused by running
+            %Analysis.run() more than once)
+            self.clean_for_new_raw();
+            
             start_time=clock; %same as 'tic;' but won't get messed up when subfunctions call tic
             %Retrieve simulation data
             sim_data=load_mat(self.TRACER_FILE_NAME);
@@ -201,15 +207,15 @@ classdef Analysis < handle
             end
             k_max=k; %just in case the above formula for k_max didn't work
             
-            %Define some constants for parfor loop
-            save_data_set=@(data_set,index) ...
-                self.save_data_set(data_set,index);
-            
             close_pool_when_done=0;
             if matlabpool('size')==0
                 matlabpool('open')
                 close_pool_when_done=1;
             end
+            
+            %Define some constants for parfor loop
+            save_data_set=@(data_set)self.save_data_set(data_set);
+            data_set_list=cell(1,k_max);
             parfor k=1:k_max
                 data_array=zeros(N_EVENTS,3); %allocate array
                 data_array(1:end,1)=generate_event_times(); %assign time data
@@ -217,15 +223,18 @@ classdef Analysis < handle
                 %Create and Save a Data_Set instance
                 data_set=Data_Set(self,k); 
                 data_set.create_raw_data_set(data_array);
-                save_data_set(data_set,k);
-            end
-            if close_pool_when_done==1
-%                 matlabpool('close')
+                save_data_set(data_set);
+                data_set_list{k}=data_set;
             end
             
             %Update the data set list.  Kind of hack-ish to do it this way,
             %but necessary because of Matlab's parfor-loop rules
-            evalc('self.load_data_sets();');
+%             evalc('self.load_data_sets();');
+            self.data_set_list(1:k_max)=data_set_list;
+            
+            if close_pool_when_done==1
+%                 matlabpool('close')
+            end
             
             elapsed_time=etime(clock,start_time);
             disp('Finished generating raw data sets');
@@ -239,8 +248,6 @@ classdef Analysis < handle
             %Generates and saves the Calc_Data_Set instances
             disp('Generating calculated data sets...');
             tic;
-            data_set_list=self.data_set_list;
-            jMax=length(data_set_list);
             
             close_pool_when_done=0;
             if matlabpool('size')==0
@@ -248,10 +255,17 @@ classdef Analysis < handle
                 close_pool_when_done=1;
             end
             
+            %Define some stuff for the parfor loop
+            data_set_list=self.data_set_list;
+            jMax=length(data_set_list);
             parfor j=1:jMax
                 data_set=data_set_list{j};
                 data_set.create_calc_data_set();
+                data_set_list{j}=data_set; %Somehow should help with parfor issues
             end
+            
+            self.data_set_list(1:jMax)=data_set_list; %Somehow should help
+            %with parfor issues
             
             if close_pool_when_done==1
 %                 matlabpool('close')
@@ -265,7 +279,7 @@ classdef Analysis < handle
             %Creates signal data sets for each element of
             %self.signal_group_list
             disp('Generating signal data sets for each signal group...');
-            tic;
+            start_time=clock; %same as 'tic;' but won't get messed up when subfunctions call tic
             
             close_pool_when_done=0;
             if matlabpool('size')==0
@@ -286,8 +300,10 @@ classdef Analysis < handle
                 end
             end
             
+            %Define some constants for parfor loop
             data_set_list=self.data_set_list(1:jMax_data_sets);
             signal_group_list=self.signal_group_list;
+            save_data_set=@(data_set)self.save_data_set(data_set);
             parfor j1=1:jMax_data_sets
                 data_set=data_set_list{j1};
                 data_set.load_raw_data_set();
@@ -296,14 +312,22 @@ classdef Analysis < handle
                     signal_group.generate_signal_data_set(data_set);
                 end
                 data_set.unload_raw_data_set();
+                save_data_set(data_set) %To save its signal_table
+                data_set_list{j1}=data_set; %Somehow should help with parfor issues
             end
+            
+            %The way handle objects work gets messed up by parfor loop, so
+            %we'll reload the data_sets here
+%             self.load_data_sets();
+            self.data_set_list(1:jMax_data_sets)=data_set_list;
             
             if close_pool_when_done==1
 %                 matlabpool('close')
             end
             
+            elapsed_time=etime(clock,start_time);
             disp('Finished generating signal data sets');
-            fprintf('Generating signal data sets took %0.2f seconds\n',toc);
+            fprintf('Generating signal data sets took %0.2f seconds\n',elapsed_time);
             
         end
         
@@ -350,33 +374,51 @@ classdef Analysis < handle
             fprintf('Generating Charman table took %0.2f seconds\n',elapsed_time);
         end
         
-        function [] = generate_Charman_histograms(self,varargin)
+        function [] = generate_Charman_histograms(self)
             %Generates and saves histograms of data from self.Charman_table
+            %    By default this function will plot 
+            %    Bin centers are set by the first signal group
             %   Optionally can specify the number of bins for the
             %   histograms as an additional argument
             
+            %Defaults
+            signal_group_list=self.signal_group_list;
+            n_bins=30;
             %Check input
-            n_varargs=length(varargin);
-            if  n_varargs==0
-                n_bins=25; %default value set here
-            elseif n_varargs==1
-                n_bins=varargin{1};
-            elseif n_varargs>1
-                msgIdent='Analysis:generate_Charman_histograms:TooManyArguments';
-                msgString='Please either give no arguments, or just one giving the ';
-                msgString=[msgString,'number of bins to use'];
-                error(msgIdent,msgString);
-            end
-            
-            if isempty(self.Charman_table)
-                self.generate_Charman_table()
+%             n_varargs=length(varargin);
+%             if  n_varargs==0
+%                 n_bins=25; %default value set here
+%             elseif n_varargs==1
+%                 n_bins=varargin{1};
+%             elseif n_varargs>1
+%                 msgIdent='Analysis:generate_Charman_histograms:TooManyArguments';
+%                 msgString='Please either give no arguments, or just one giving the ';
+%                 msgString=[msgString,'number of bins to use'];
+%                 error(msgIdent,msgString);
+%             end
+
+            jMax_signal_group=length(signal_group_list);
+            for j=1:jMax_signal_group
+                signal_group=signal_group_list{j};
+                if isempty(signal_group.Charman_table)
+                    if signal_group.Charman_table_file_exists()
+                        signal_group.load_Charman_table();
+                    else
+                        signal_group.generate_Charman_table();
+%                         msgIdent='Analysis:generate_Charman_histograms:';
+%                         msgIdent=[msgIdent,'NoCharmanTable']; %#ok<AGROW>
+%                         msgString='Generate Charman_tables before generating ';
+%                         msgString=[msgString,'Charman histograms']; %#ok<AGROW>
+%                         error(msgIdent,msgString);
+                    end
+                end
             end
             
             disp('Generating Charman histograms...');
             tic;
-            data_strings={ ... %data_type calue then name for plot
+            data_strings={ ... %data_type value then name for plot
                 'z-position','z-position'; ...
-                'wait_time','wait time'; ...
+%                 'wait_time','wait time'; ...
                 };
             algorithm_period_strings={ ...
                 'Charman II', 'year'; ...
@@ -391,16 +433,26 @@ classdef Analysis < handle
                 for j_algorithm_period=1:jMax_algorithm_period
                     algorithm_string=algorithm_period_strings{j_algorithm_period,1};
                     period_string=algorithm_period_strings{j_algorithm_period,2};
-                    temp_table=filter_table(self.Charman_table, ...
-                        'data_type',data_string, ...
-                        'algorithm',algorithm_string, ...
-                        'period',period_string);
-                    left_table=filter_table(temp_table,'direction','left');
-                    right_table=filter_table(temp_table,'direction','right');
-                    S_array=self.weighted_average(abs(left_table.A_1),abs(right_table.A_1));
+                    
+                    %Do first histogram
+                    signal_group=signal_group_list{1};
+                    S_array=Analysis.extract_S_array(signal_group,data_string, ...
+                        algorithm_string, period_string);
+                    bin_height=zeros(n_bins,jMax_signal_group);
+                    [bin_count,bin_center]=hist(S_array,n_bins);
+                    bin_height(:,1)=bin_count/sum(bin_count);
+                    
+                    %Do the rest of the histograms given the bin centers
+                    %from above.
+                    for j_signal_group=2:jMax_signal_group
+                        signal_group=signal_group_list{j_signal_group};
+                        S_array=Analysis.extract_S_array(signal_group,data_string, ...
+                            algorithm_string, period_string);
+                    [bin_count,bin_center]=hist(S_array,n_bins);
+                    bin_height(:,j_signal_group)=bin_count/sum(bin_count);
+                    end
+                    
                     figure('WindowStyle','docked');
-                   [bin_count,bin_center]=hist(S_array,n_bins);
-                    bin_height=bin_count/sum(bin_count);
                     bar(bin_center,bin_height,'hist');
                     title([algorithm_string,' - ',period_string,' - ',data_name]);
                     if strcmp(data_string,'z-position')
@@ -415,29 +467,6 @@ classdef Analysis < handle
             disp('Finished generating Charman histograms');
             fprintf('Generating Charman histograms took %0.2f seconds\n',toc);
         end
-
-%         function [] = save_Charman_table(self)
-%             %Saves the Charman table to the Tables subdirectory
-%             Charman_table=self.Charman_table;
-%             if ~isempty(Charman_table)
-%                 save_mat(self.Charman_file_name,Charman_table);
-%             else
-%                 msgIdent='Analysis:save_Charman_table:TableEmpty';
-%                 msgString='Cannot save Charman_table; it is currently empty';
-%                 error(msgIdent,msgString);
-%             end
-%         end
-%         
-%         function [] = load_Charman_table(self)
-%             %Loads the Charman table from the Tables subdirectory
-%             if self.Charman_table_file_exists()
-%                 self.Charman_table=load_mat(self.Charman_file_name);
-%             else
-%                 msgIdent='Analysis:load_Charman_table:NoSavedTable';
-%                 msgString='No Charman_table is saved';
-%                 error(msgIdent,msgString);
-%             end
-%         end
 
         function [] = load_data_sets(self)
             %Loads Data_Sets into memory
@@ -486,6 +515,8 @@ classdef Analysis < handle
                 file_name='AllSimData.mat';
             elseif strcmp(file_name,'large')
                 file_name='LargeSimData.mat';
+            elseif strcmp(file_name,'medium')
+                file_name='MediumSimData.mat';
             end
             self.TRACER_FILE_NAME=fullfile(Analysis.SIMULATION_DATA, ...
             'TracerOutput', ...
@@ -550,12 +581,11 @@ classdef Analysis < handle
                 end
             end
             
-            
-            
             n_sets=floor(n_sets); %make sure it's an integer
             
             %Make sure signal_func and signal_name aren't already used
             jMax=length(self.signal_group_list);
+            already_used=false;
             for j=1:jMax
                 signal_group=self.signal_group_list{j};
                 handles_equal=isequal(signal_func,signal_group.signal_func) ;
@@ -566,27 +596,33 @@ classdef Analysis < handle
                     msgIdent='Analysis:add_signal_group:FuncAlreadyAdded';
                     msgString='The given function %s is already in ';
                     msgString=[msgString,'self.signal_group_list']; %#ok<AGROW>
-                    error(msgIdent,msgString,func2str(signal_func));
+                    warning(msgIdent,msgString,func2str(signal_func));
+                    already_used=true;
                 elseif names_equal
                     msgIdent='Analysis:add_signal_group:NameAlreadyAdded';
                     msgString='The given function name %s is already in ';
                     msgString=[msgString,'self.signal_group_list']; %#ok<AGROW>
-                    error(msgIdent,msgString,signal_name);
+                    warning(msgIdent,msgString,signal_name);
+                    already_used=true;
                 end
             end
             
             %Actually create signal_group, add it to the list, and create
-            %its directory
-            signal_group=Signal_Group(self,signal_func,signal_name,n_sets);
-            self.signal_group_list{end+1}=signal_group;
-            if exist(signal_group.signal_dir,'dir')~=7
-                mkdir(signal_group.signal_dir);
+            %its directory if its not already used
+            if ~already_used
+                signal_group=Signal_Group(self,signal_func,signal_name,n_sets);
+                self.signal_group_list{end+1}=signal_group;
+                if exist(signal_group.signal_dir,'dir')~=7
+                    mkdir(signal_group.signal_dir);
+                end
+                self.save_signal_group_list();
             end
-            self.save_signal_group_list();
         end
         
         function [] = delete_signal_group(self,signal_name)
             %Deletes the signal_group
+            
+            %find the signal grou in the list
             jMax=length(self.signal_group_list);
             desired_signal_group=[];
             j=1;
@@ -599,6 +635,7 @@ classdef Analysis < handle
                 j=j+1;
             end
             
+            %error out if it can't be found
             if isempty(desired_signal_group)
                 msgIdent='Analysis:delete_signal_group:InvalidSignalName';
                 msgString='No signal group with signal anme %s exists';
@@ -609,6 +646,11 @@ classdef Analysis < handle
             %Remove directrory if it exists
             if exist(signal_group.signal_dir,'dir')==7
                 rmdir(signal_group.signal_dir,'s');
+            end
+            
+            %Remove its table directory
+            if exist(signal_group.table_dir,'dir')==7
+                rmdir(signal_group.table_dir,'s');
             end
             
             %Delete its rows for all relevant data_set.signal_table
@@ -706,13 +748,49 @@ classdef Analysis < handle
             file_name='signal_group_list.mat';
             self.signal_group_file_name=fullfile(self.signal_data_set_root,file_name);
         end
+        
+        function [] = clean_for_new_raw(self)
+            %Cleans up self.data_set_root to help with some bugs that can
+            %occur if self.generate_raw_data_sets() is run multiple times
+            %without deleting the dependent data
+            
+            %First erase signal_data_sets since leaving these around causes
+            %the biggest issues
+            signal_group_list=self.signal_group_list;
+            jMax=length(signal_group_list);
+            for j=1:jMax
+                signal_group=signal_group_list{j};
+                signal_dir=signal_group.signal_dir;
+                if exist(signal_dir,'dir')==7
+                    rmdir(signal_dir,'s');
+                    mkdir(signal_dir);
+                end
+            end
+            
+            %Delete raw and calc data sets and tables
+            dir_list={ ...
+                self.calc_data_set_dir, ...
+                self.raw_data_set_dir, ...
+                self.data_set_dir, ...
+                self.table_dir, ...
+                };
+            jMax=length(dir_list);
+            for j=1:jMax
+                current_dir=dir_list{j};
+                if exist(current_dir,'dir')==7
+                    rmdir(current_dir,'s');
+                    mkdir(current_dir);
+                end
+            end
+        end
                 
-        function [] = save_data_set(self,data_set,index)
+        function [] = save_data_set(self,data_set)
             %Saves a Data_Set object
             if isempty(data_set.raw_data_set) && isempty(data_set.calc_data_set)
                 data_set.set_analysis_parent([]); %So save_mat doesn't save the parent as well
                 OUTPUT_FILE_ROOT=fullfile(self.data_set_dir, ...
                     Analysis.DATA_SET_PREFIX);
+                index=data_set.index;
                 out_file_name=strcat(OUTPUT_FILE_ROOT,int2str(index),'.mat');
                 save_mat(out_file_name,data_set);
             else
@@ -731,16 +809,6 @@ classdef Analysis < handle
             data_set_names=fullfile(self.data_set_dir,{file_list.name});
         end
         
-%         function bool = Charman_table_file_exists(self)
-%             %Returns true or false depending on whether or not the
-%             %Charman_table file exists
-%             if exist(self.Charman_file_name,'file')==2
-%                 bool=true;
-%             else
-%                 bool=false;
-%             end
-%         end
-        
         function bool = signal_group_file_exists(self)
             %Checks if there is a saved signal_group_list file
             if exist(self.signal_group_file_name,'file')==2
@@ -751,6 +819,23 @@ classdef Analysis < handle
         end
         
     end %End of hidden methods
+    
+    methods (Hidden, Static)
+        
+        function S_array = extract_S_array(signal_group,data_string, ...
+                algorithm_string, period_string)
+            %Helper function used by generate_Charman_histograms
+            Charman_table=signal_group.Charman_table;
+            temp_table=filter_table(Charman_table, ...
+                'data_type',data_string, ...
+                'algorithm',algorithm_string, ...
+                'period',period_string);
+            left_table=filter_table(temp_table,'direction','left');
+            right_table=filter_table(temp_table,'direction','right');
+            S_array=Analysis.weighted_average(abs(left_table.A_1),abs(right_table.A_1));
+        end
+        
+    end
     
 end
 

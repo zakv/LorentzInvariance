@@ -98,6 +98,7 @@ classdef Data_Set < handle
             file_name={file_name};
             signal_name={signal_name};
             table_row=table(signal_data_set,file_name,'RowNames',signal_name);
+            
             if isempty(self.signal_table)
                 self.signal_table=table_row;
             elseif ismember(self.signal_table.Properties.RowNames,signal_name{1})
@@ -113,6 +114,7 @@ classdef Data_Set < handle
             if unload_raw_data_set==true
                 self.unload_raw_data_set();
             end
+            
         end
 
         function [] = save_raw_data_set(self)

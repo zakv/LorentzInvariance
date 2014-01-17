@@ -125,6 +125,7 @@ classdef Signal_Group < handle
             jMax_data_type=size(data_type_list,1);
             
             %Initialize variables that are divided among workers
+            signal_name=self.signal_name; %#ok<PROP>
             weighted_average=@Analysis.weighted_average;
             data_set_index_cell_array=cell(jMax_data_set,1);
             algorithm_cell_array=cell(jMax_data_set,1);
@@ -134,10 +135,11 @@ classdef Signal_Group < handle
             A_1_cell_array=cell(jMax_data_set,1);
             parfor j_data_set_index=1:jMax_data_set
                 data_set=data_set_list{j_data_set_index};
-                data_set.load_raw_data_set();
-                raw_data_set=data_set.raw_data_set;
+                data_set.load_signal_data_set(signal_name); %#ok<PROP>
+                raw_data_set=data_set.signal_table{signal_name,'signal_data_set'}; %#ok<PROP>
+                raw_data_set=raw_data_set{1}; %Get it out of its cell
                 
-                rows_per_chunk=jMax_algorithm*jMax_period*jMax_data_type*3 %3 for direction
+                rows_per_chunk=jMax_algorithm*jMax_period*jMax_data_type*3; %3 for direction
                 data_set_index_chunk=zeros(rows_per_chunk,1);
                 algorithm_chunk=cell(rows_per_chunk,1);
                 period_chunk=cell(rows_per_chunk,1);
@@ -186,7 +188,8 @@ classdef Signal_Group < handle
                 data_type_cell_array{j_data_set_index}=data_type_chunk;
                 direction_cell_array{j_data_set_index}=direction_chunk;
                 A_1_cell_array{j_data_set_index}=A_1_chunk;
-                data_set.unload_raw_data_set();
+                data_set.unload_signal_data_set(signal_name); %#ok<PROP>
+%                 data_set_list{j_data_set_index}=data_set; %Should help with parfor issues
             end
             data_index=vertcat(data_set_index_cell_array{:});
             algorithm=categorical( vertcat(algorithm_cell_array{:}) );
@@ -196,6 +199,10 @@ classdef Signal_Group < handle
             A_1=vertcat(A_1_cell_array{:});
             
             self.Charman_table=table(data_index,data_type,algorithm,period,direction,A_1);
+            %Recreate Charman_table directory if it has been deleted
+            if exist(self.table_dir,'dir')~=7
+                mkdir(self.table_dir);
+            end
             self.save_Charman_table();
             if close_pool_when_done==1
 %                 matlabpool('close')
@@ -208,7 +215,12 @@ classdef Signal_Group < handle
         function data_set_list = get_data_set_list(self)
             %Returns a list of the data_sets that should have a signal data
             %set for this signal group (assuming they've been generated).
-            data_set_list=self.analysis_parent.data_set_list(1:self.n_sets);
+            analysis_parent=self.analysis_parent; %#ok<PROP>
+            n_parent_data_sets=length(analysis_parent.data_set_list); %#ok<PROP>
+            if n_parent_data_sets<self.n_sets
+                analysis_parent.load_data_sets(); %#ok<PROP>
+            end
+            data_set_list=analysis_parent.data_set_list(1:self.n_sets); %#ok<PROP>
         end
         
         function set_n_sets(self,n_sets)

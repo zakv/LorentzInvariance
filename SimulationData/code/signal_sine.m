@@ -42,7 +42,7 @@ sine_vals=sin(omega*date_times+phase);
 wait_times=wait_times+t_amplitude*sine_vals;
 z_positions=z_positions+z_amplitude*sine_vals;
 
-signal_data_set=[date_times,wait_times,z_positions];
+signal_data_set=Raw_Data_Set([date_times,wait_times,z_positions]);
 
 end
 
