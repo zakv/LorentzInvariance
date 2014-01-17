@@ -71,12 +71,28 @@ classdef Signal_Group < handle
             end
         end
         
-        function [] = generate_Charman_table_section(self,data_set)
+        function [] = generate_Charman_table(self)
             %Creates a table with results from the two Charman algorithms
             %for periods of both day and year
             
+            data_set_list=self.get_data_set_list();
+            if isempty(data_set_list)
+                msgIdent='Signal_Group:generate_Charman_table:NoDataSets';
+                msgString='Please generate and save the signal data sets before ';
+                msgString=[msgString,'generating Charman_tables'];
+                error(msgIdent,msgString);
+            end
+            jMax_data_set=length(data_set_list);
+            
+            fprintf('Generating Charman table for %s... ',self.signal_name);
 %             addpath ../../CharmanUltra/
-            weighted_average=Analysis.weighted_average;
+            tic;
+            
+            close_pool_when_done=0;
+            if matlabpool('size')==0
+                matlabpool('open');
+                close_pool_when_done=1;
+            end
             
             algorithm_list={ ...
                 @(date_times,data,period)CharmanII(date_times,data,period), 'Charman II';
@@ -100,19 +116,19 @@ classdef Signal_Group < handle
             jMax_data_type=size(data_type_list,1);
             
             %Initialize variables that are divided among workers
-%             weighted_average=@self.weighted_average;
-%             data_set_index_cell_array=cell(jMax_data_set,1);
-%             algorithm_cell_array=cell(jMax_data_set,1);
-%             period_cell_array=cell(jMax_data_set,1);
-%             data_type_cell_array=cell(jMax_data_type);
-%             direction_cell_array=cell(jMax_data_set,1);
-%             A_1_cell_array=cell(jMax_data_set,1);
-%             parfor j_data_set_index=1:jMax_data_set
-
-                j_data_set_index=data_set.index;
+            weighted_average=@Analysis.weighted_average;
+            data_set_index_cell_array=cell(jMax_data_set,1);
+            algorithm_cell_array=cell(jMax_data_set,1);
+            period_cell_array=cell(jMax_data_set,1);
+            data_type_cell_array=cell(jMax_data_type);
+            direction_cell_array=cell(jMax_data_set,1);
+            A_1_cell_array=cell(jMax_data_set,1);
+            parfor j_data_set_index=1:jMax_data_set
+                data_set=data_set_list{j_data_set_index};
+                data_set.load_raw_data_set();
                 raw_data_set=data_set.raw_data_set;
                 
-                rows_per_chunk=jMax_algorithm*jMax_period*jMax_data_type*3; %3 for direction
+                rows_per_chunk=jMax_algorithm*jMax_period*jMax_data_type*3 %3 for direction
                 data_set_index_chunk=zeros(rows_per_chunk,1);
                 algorithm_chunk=cell(rows_per_chunk,1);
                 period_chunk=cell(rows_per_chunk,1);
@@ -121,12 +137,12 @@ classdef Signal_Group < handle
                 A_1_chunk=zeros(rows_per_chunk,1);
                 j=1;
                 for j_data=1:jMax_data_type %wait_times or z-position
-                    data_type_name=data_type_list{j_data,2};
+                    data_type_name=data_type_list{j_data,2}; %#ok<PFBNS>
                     for j_algorithm=1:jMax_algorithm
-                        algorithm=algorithm_list{j_algorithm,1};
+                        algorithm=algorithm_list{j_algorithm,1}; %#ok<PFBNS>
                         algorithm_name=algorithm_list{j_algorithm,2};
                         for j_period=1:jMax_period
-                            period=period_list{j_period,1};
+                            period=period_list{j_period,1}; %#ok<PFBNS>
                             period_name=period_list{j_period,2};
                             mini_A_1_array=zeros(1,2); %for averaging left/right data
                             for j_direction=1:2 %left then right, then averaged below
@@ -136,7 +152,7 @@ classdef Signal_Group < handle
                                 algorithm_chunk{j}=algorithm_name;
                                 period_chunk{j}=period_name;
                                 data_type_chunk{j}=data_type_name;
-                                direction_chunk{j}=direction_list{j_direction,2};
+                                direction_chunk{j}=direction_list{j_direction,2}; %#ok<PFBNS>
                                 date_times=raw_data_set.get_date_times(j_direction);
                                 data=raw_data_set.get_data(j_data,j_direction);
                                 mini_A_1_array(j_direction)=algorithm(date_times,data,period);
@@ -155,22 +171,29 @@ classdef Signal_Group < handle
                         end
                     end
                 end
-%                 data_set_index_cell_array{j_data_set_index}=data_set_index_chunk;
-%                 algorithm_cell_array{j_data_set_index}=algorithm_chunk;
-%                 period_cell_array{j_data_set_index}=period_chunk;
-%                 data_type_cell_array{j_data_set_index}=data_type_chunk;
-%                 direction_cell_array{j_data_set_index}=direction_chunk;
-%                 A_1_cell_array{j_data_set_index}=A_1_chunk;
-%             end
-            data_index=data_set_index_chunk;
-            algorithm=categorical(algorithm_chunk);
-            period=categorical(period_chunk);
-            data_type=categorical(data_type_chunk);
-            direction=categorical(direction_chunk);
-            A_1=A_1_chunk;
+                data_set_index_cell_array{j_data_set_index}=data_set_index_chunk;
+                algorithm_cell_array{j_data_set_index}=algorithm_chunk;
+                period_cell_array{j_data_set_index}=period_chunk;
+                data_type_cell_array{j_data_set_index}=data_type_chunk;
+                direction_cell_array{j_data_set_index}=direction_chunk;
+                A_1_cell_array{j_data_set_index}=A_1_chunk;
+                data_set.unload_raw_data_set();
+            end
+            data_index=vertcat(data_set_index_cell_array{:});
+            algorithm=categorical( vertcat(algorithm_cell_array{:}) );
+            period=categorical( vertcat(period_cell_array{:}) );
+            data_type=categorical( vertcat(data_type_cell_array{:}) );
+            direction=categorical( vertcat(direction_cell_array{:}) );
+            A_1=vertcat(A_1_cell_array{:});
             
-            Charman_table_chunk=table(data_index,data_type,algorithm,period,direction,A_1);
-            self.Charman_table=[self.Charman_table;Charman_table_chunk];
+            self.Charman_table=table(data_index,data_type,algorithm,period,direction,A_1);
+            self.save_Charman_table();
+            if close_pool_when_done==1
+%                 matlabpool('close')
+            end
+            
+            fprintf('done\n');
+            fprintf('Generating Charman table for %s took %0.2f seconds\n',self.signal_name,toc);
         end
         
         function data_set_list = get_data_set_list(self)

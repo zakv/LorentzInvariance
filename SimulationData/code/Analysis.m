@@ -81,7 +81,6 @@ classdef Analysis < handle
             self.data_set_list={};
             self.signal_group_list={};
 %             self.Charman_table=[];
-            self.add_signal_group(@signal_null,'null');
             
             %Create subdirectories if necessary
             subdirectory_list={ ...
@@ -129,7 +128,12 @@ classdef Analysis < handle
             disp(' ');
             disp(' ');
             
-            self.generate_Charman_table();
+            self.add_signal_group(@signal_null,'null');
+            self.generate_signal_data_sets();
+            disp(' ');
+            disp(' ');
+            
+            self.generate_Charman_tables();
             disp(' ');
             disp(' ');
             
@@ -303,7 +307,7 @@ classdef Analysis < handle
             
         end
         
-        function [] = generate_Charman_table(self)
+        function [] = generate_Charman_tables(self)
             %Creates a table with results from the two Charman algorithms
             %for periods of both day and year
             
@@ -313,16 +317,15 @@ classdef Analysis < handle
             end
             data_set_list=self.data_set_list;
             if isempty(data_set_list)
-                msgIdent='Analysis:generate_Charman_table:NoDataSets';
+                msgIdent='Analysis:generate_Charman_tables:NoDataSets';
                 msgString='Please generate the data_sets before ';
-                msgString=[msgString,'generating Charman_table'];
+                msgString=[msgString,'generating Charman_tables'];
                 error(msgIdent,msgString);
             end
-            jMax_data_set=length(data_set_list);
             
-            disp('Generating Charman table...');
+            disp('Generating Charman tables...');
             addpath ../../CharmanUltra/
-            tic;
+            start_time=clock; %same as 'tic;' but won't get messed up when subfunctions call tic
             
             close_pool_when_done=0;
             if matlabpool('size')==0
@@ -333,27 +336,18 @@ classdef Analysis < handle
             %Initializing variables that are sent to workers
             signal_group_list=self.signal_group_list;
             jMax_signal_group=length(signal_group_list);
-            parfor j_data_set_index=1:jMax_data_set
-                data_set=data_set_list{j_data_set_index};
-                data_set.load_raw_data_set();
-                for j_signal_group=1:jMax_signal_group
-                    signal_group=signal_group_list{j_signal_group}; %#ok<PFBNS>
-                    signal_group.generate_Charman_table_chunk(data_set);
-                end
-                data_set.unload_raw_data_set();
-            end
-            
-            for j=1:jMax_signal_group
-                signal_group=signal_group_list{j};
-                signal_group.save_Charman_table()
+            for j_signal_group=1:jMax_signal_group
+                signal_group=signal_group_list{j_signal_group};
+                signal_group.generate_Charman_table();
             end
             
             if close_pool_when_done==1
 %                 matlabpool('close')
             end
             
-            disp('Finished generating Charman table');
-            fprintf('Generating Charman table took %0.2f seconds\n',toc);
+            disp('Finished generating Charman tables');
+            elapsed_time=etime(clock,start_time);
+            fprintf('Generating Charman table took %0.2f seconds\n',elapsed_time);
         end
         
         function [] = generate_Charman_histograms(self,varargin)
