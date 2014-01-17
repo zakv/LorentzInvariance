@@ -113,32 +113,27 @@ classdef Analysis < handle
             end
             
             self.generate_raw_data_sets();
-            display(self.data_set_list{1});
             disp(' ');
             disp(' ');
             
             self.generate_calc_data_sets();
-            display(self.data_set_list{1});
             disp(' ');
             disp(' ');
             
             self.add_signal_group(@signal_null,'null');
             self.add_signal_group(@(raw_data_set) ...
                 signal_sine(raw_data_set,0.01,0.01,'day',0),'daily sine');
-%             self.add_signal_group(@(raw_data_set) ...
-%                 signal_sine(raw_data_set,0.01,0.01,'year',0),'yearly sine');
+            self.add_signal_group(@(raw_data_set) ...
+                signal_sine(raw_data_set,0.01,0.01,'year',0),'yearly sine');
             self.generate_signal_data_sets();
-            display(self.data_set_list{1});
             disp(' ');
             disp(' ');
             
             self.generate_Charman_tables();
-            display(self.data_set_list{1});
             disp(' ');
             disp(' ');
             
             self.generate_Charman_histograms();
-            display(self.data_set_list{1});
             disp(' ');
             disp(' ');
             
@@ -374,29 +369,50 @@ classdef Analysis < handle
             fprintf('Generating Charman table took %0.2f seconds\n',elapsed_time);
         end
         
-        function [] = generate_Charman_histograms(self)
+        function [] = generate_Charman_histograms(self,varargin)
             %Generates and saves histograms of data from self.Charman_table
-            %    By default this function will plot 
-            %    Bin centers are set by the first signal group
-            %   Optionally can specify the number of bins for the
-            %   histograms as an additional argument
+            %    By default this function will plot the first signal group
+            %    (null) and last signal group (most recently added) with 30
+            %    bins.  Passing a cell array with group names will cause
+            %    the function to plot those groups, with the first one
+            %    setting the bin center positions.  Passing in a numeric
+            %    value will set the number of bins.
             
             %Defaults
-            signal_group_list=self.signal_group_list;
+            signal_group_list={ ...
+                self.signal_group_list{1}, ...
+                self.signal_group_list{end}, ...
+                };
             n_bins=30;
-            %Check input
-%             n_varargs=length(varargin);
-%             if  n_varargs==0
-%                 n_bins=25; %default value set here
-%             elseif n_varargs==1
-%                 n_bins=varargin{1};
-%             elseif n_varargs>1
-%                 msgIdent='Analysis:generate_Charman_histograms:TooManyArguments';
-%                 msgString='Please either give no arguments, or just one giving the ';
-%                 msgString=[msgString,'number of bins to use'];
-%                 error(msgIdent,msgString);
-%             end
-
+            
+            %Interpret input
+            convert_names=false;
+            nVararg=length(varargin);
+            for j=1:nVararg
+                current_arg=varargin{j};
+                if iscell(current_arg)
+                    signal_name_list=current_arg;
+                    convert_names=true;
+                elseif isnumeric(current_arg)
+                    n_bins=round(current_arg);
+                else
+                    msgIdent='Analysis:generate_Charman_histograms:InvalidArgument';
+                    msgString='Invalid argument.  Try harder next time.';
+                    error(msgIdent,msgString);
+                end
+            end
+            %Convert names to signal group instances if necessary
+            if convert_names
+                jMax=length(signal_name_list);
+                signal_group_list=cell(1,jMax);
+                for j=1:jMax
+                    signal_name=signal_name_list{j};
+                    signal_group_list{j}= ...
+                        self.signal_group_name_to_instance(signal_name);
+                end
+            end
+            
+            %Make sure Charman_tables are generated and loaded
             jMax_signal_group=length(signal_group_list);
             for j=1:jMax_signal_group
                 signal_group=signal_group_list{j};
@@ -405,11 +421,6 @@ classdef Analysis < handle
                         signal_group.load_Charman_table();
                     else
                         signal_group.generate_Charman_table();
-%                         msgIdent='Analysis:generate_Charman_histograms:';
-%                         msgIdent=[msgIdent,'NoCharmanTable']; %#ok<AGROW>
-%                         msgString='Generate Charman_tables before generating ';
-%                         msgString=[msgString,'Charman histograms']; %#ok<AGROW>
-%                         error(msgIdent,msgString);
                     end
                 end
             end
@@ -622,26 +633,8 @@ classdef Analysis < handle
         function [] = delete_signal_group(self,signal_name)
             %Deletes the signal_group
             
-            %find the signal grou in the list
-            jMax=length(self.signal_group_list);
-            desired_signal_group=[];
-            j=1;
-            while j<=jMax && isempty(desired_signal_group)
-                signal_group=self.signal_group_list{j};
-                if strcmp(signal_name,signal_group.signal_name)
-                    desired_signal_group=signal_group;
-                    signal_group_index=j;
-                end
-                j=j+1;
-            end
-            
-            %error out if it can't be found
-            if isempty(desired_signal_group)
-                msgIdent='Analysis:delete_signal_group:InvalidSignalName';
-                msgString='No signal group with signal anme %s exists';
-                error(msgIdent,msgString,signal_name);
-            end
-            signal_group=desired_signal_group;
+            %Get the signal_group instance
+            signal_group=self.signal_group_name_to_instance(signal_name);
             
             %Remove directrory if it exists
             if exist(signal_group.signal_dir,'dir')==7
@@ -703,6 +696,26 @@ classdef Analysis < handle
                 msgIdent='Analysis:load_signal_group_list:NoSavedList';
                 msgString='No signal_group_list is saved';
                 error(msgIdent,msgString);
+            end
+        end
+        
+        function signal_group = signal_group_name_to_instance(self,signal_name)
+            %Returns the signal_group instance with the given name
+            jMax=length(self.signal_group_list);
+            j=1;
+            found=false;
+            while j<=jMax && found==false
+                current_signal_group=self.signal_group_list{j};
+                if strcmp(current_signal_group.signal_name,signal_name)
+                    found=true;
+                    signal_group=current_signal_group;
+                end
+                j=j+1;
+            end
+            if found==false
+                msgIdent='Analysis:signal_group_name_to_obj:InvalidName';
+                msgString='No group with name %s exists';
+                error(msgIdent,msgString,signal_name);
             end
         end
         
