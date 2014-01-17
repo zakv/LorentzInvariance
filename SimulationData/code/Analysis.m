@@ -463,9 +463,16 @@ classdef Analysis < handle
                     bin_height(:,j_signal_group)=bin_count/sum(bin_count);
                     end
                     
+                    %Get names for legend
+                    legend_names=cell(1,jMax_signal_group);
+                    for j_signal_group=1:jMax_signal_group
+                        signal_group=signal_group_list{j_signal_group};
+                        legend_names{j_signal_group}=signal_group.signal_name;
+                    end
                     figure('WindowStyle','docked');
                     bar(bin_center,bin_height,'hist');
                     title([algorithm_string,' - ',period_string,' - ',data_name]);
+                    legend(legend_names);
                     if strcmp(data_string,'z-position')
                         xlabel('S, weighted average of |A_1| (meters)');
                     elseif strcmp(data_string,'wait_time')
