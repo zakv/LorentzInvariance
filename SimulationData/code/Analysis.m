@@ -120,11 +120,15 @@ classdef Analysis < handle
             disp(' ');
             disp(' ');
             
+            %Add a few signal groups, suppress warning if they're already
+            %in there.
+            warning('off','Analysis:add_signal_group:FuncAlreadyAdded');
+            warning('off','Analysis:add_signal_group:NameAlreadyAdded');
             self.add_signal_group(@signal_null,'null');
             self.add_signal_group(@(raw_data_set) ...
                 signal_sine(raw_data_set,0.01,0.01,'day',0),'daily sine');
-            self.add_signal_group(@(raw_data_set) ...
-                signal_sine(raw_data_set,0.01,0.01,'year',0),'yearly sine');
+            warning('on','Analysis:add_signal_group:FuncAlreadyAdded');
+            warning('on','Analysis:add_signal_group:NameAlreadyAdded');
             self.generate_signal_data_sets();
             disp(' ');
             disp(' ');
@@ -226,6 +230,7 @@ classdef Analysis < handle
             %but necessary because of Matlab's parfor-loop rules
 %             evalc('self.load_data_sets();');
             self.data_set_list(1:k_max)=data_set_list;
+            self.reassign_analysis_parent() %reassign analysis parent after saving
             
             if close_pool_when_done==1
 %                 matlabpool('close')
@@ -256,10 +261,10 @@ classdef Analysis < handle
             parfor j=1:jMax
                 data_set=data_set_list{j};
                 data_set.create_calc_data_set();
-                data_set_list{j}=data_set; %Somehow should help with parfor issues
+%                 data_set_list{j}=data_set; %Somehow should help with parfor issues
             end
             
-            self.data_set_list(1:jMax)=data_set_list; %Somehow should help
+%             self.data_set_list(1:jMax)=data_set_list; %Somehow should help
             %with parfor issues
             
             if close_pool_when_done==1
@@ -282,22 +287,27 @@ classdef Analysis < handle
                 close_pool_when_done=1;
             end
             
-            %Figure out  what's the most data_sets needed for any signal
-            %group.  Also recreate any directories that may have been
-            %deleted.
+            %Figure out  which signal data sets need to be generated
+            %andwhat's the most data_sets needed for any signal group.
+            %Also recreate any directories that may have been deleted.
             jMax_data_sets=0;
             n_groups=length(self.signal_group_list);
+            generate_list={};
             for j=1:n_groups
                 signal_group=self.signal_group_list{j};
-                jMax_data_sets=max(jMax_data_sets,signal_group.n_sets);
                 if exist(signal_group.signal_dir,'dir')~=7
                     mkdir(signal_group.signal_dir);
+                end
+                signal_group.reset_n_sets(); %Make sure thie n_sets value is sane
+                if ~signal_group.is_generated()
+                    jMax_data_sets=max(jMax_data_sets,signal_group.n_sets);
+                    generate_list{end+1}=signal_group; %#ok<AGROW>
                 end
             end
             
             %Define some constants for parfor loop
             data_set_list=self.data_set_list(1:jMax_data_sets);
-            signal_group_list=self.signal_group_list;
+            signal_group_list=generate_list;
             save_data_set=@(data_set)self.save_data_set(data_set);
             parfor j1=1:jMax_data_sets
                 data_set=data_set_list{j1};
@@ -312,8 +322,7 @@ classdef Analysis < handle
             end
             
             %The way handle objects work gets messed up by parfor loop, so
-            %we'll reload the data_sets here
-%             self.load_data_sets();
+            %we'll reassign the data here
             self.data_set_list(1:jMax_data_sets)=data_set_list;
             
             if close_pool_when_done==1
@@ -356,8 +365,7 @@ classdef Analysis < handle
             signal_group_list=self.signal_group_list;
             jMax_signal_group=length(signal_group_list);
             for j_signal_group=1:jMax_signal_group
-                signal_group=signal_group_list{j_signal_group};
-                signal_group.generate_Charman_table();
+                signal_group_list{j_signal_group}.generate_Charman_table();
             end
             
             if close_pool_when_done==1
@@ -432,7 +440,7 @@ classdef Analysis < handle
 %                 'wait_time','wait time'; ...
                 };
             algorithm_period_strings={ ...
-                'Charman II', 'year'; ...
+%                 'Charman II', 'year'; ...
                 'Charman IV', 'day'; ...
                 };
             jMax_data=size(data_strings,1);
@@ -523,24 +531,6 @@ classdef Analysis < handle
             data_set=self.data_set_list{1};
         end
         
-        function [] = set_tracer_file(self,file_name)
-            %Selects a tracer data file
-            %   file_name should be the name of a tracer data file in the
-            %   direcotry SimulationData/TracerOutput/
-            %   The current options are MediumSimData.mat and
-            %   AllSimData.mat
-            if strcmp(file_name,'all')
-                file_name='AllSimData.mat';
-            elseif strcmp(file_name,'large')
-                file_name='LargeSimData.mat';
-            elseif strcmp(file_name,'medium')
-                file_name='MediumSimData.mat';
-            end
-            self.TRACER_FILE_NAME=fullfile(Analysis.SIMULATION_DATA, ...
-            'TracerOutput', ...
-            file_name); 
-        end
-        
         function [] = add_signal_group(self,signal_func,varargin)
             %Adds a signal group with the given data to
             %self.signal_group_list
@@ -564,7 +554,7 @@ classdef Analysis < handle
             
             %Default values
             signal_name=func2str(signal_func);
-            n_sets=max( 0.1*length(self.data_set_list),1000);
+            n_sets=0; %lets signal group choose the default
             
             %Interpret input
             nVarargs=length(varargin);
@@ -641,7 +631,8 @@ classdef Analysis < handle
             %Deletes the signal_group
             
             %Get the signal_group instance
-            signal_group=self.signal_group_name_to_instance(signal_name);
+            [signal_group,signal_group_index]= ...
+                self.signal_group_name_to_instance(signal_name);
             
             %Remove directrory if it exists
             if exist(signal_group.signal_dir,'dir')==7
@@ -666,48 +657,9 @@ classdef Analysis < handle
             self.signal_group_list(signal_group_index)=[];
         end
         
-        function [] = save_signal_group_list(self)
-            %Save self.signal_group_list to the self.signal_data_set_root
-            %directory
-            
-            %Erase analysis parent so the analysis instance does not get
-            %saved
-            jMax=length(self.signal_group_list);
-            for j=1:jMax
-                signal_group=self.signal_group_list{j};
-                signal_group.set_analysis_parent([]);
-            end
-            
-            %Save it
-            save_mat(self.signal_group_file_name,self.signal_group_list);
-            
-            %Reassign analysis_parent
-            jMax=length(self.signal_group_list);
-            for j=1:jMax
-                signal_group=self.signal_group_list{j};
-                signal_group.set_analysis_parent(self);
-            end
-        end
-        
-        function [] = load_signal_group_list(self)
-            %Loads the signal_group_list from the hard drive
-            if exist(self.signal_group_file_name,'file')==2
-                self.signal_group_list=load_mat(self.signal_group_file_name);
-                %Set this analysis instance as the parent
-                jMax=length(self.signal_group_list);
-                for j=1:jMax
-                    signal_group=self.signal_group_list{j};
-                    signal_group.set_analysis_parent(self);
-                end
-            else
-                msgIdent='Analysis:load_signal_group_list:NoSavedList';
-                msgString='No signal_group_list is saved';
-                error(msgIdent,msgString);
-            end
-        end
-        
-        function signal_group = signal_group_name_to_instance(self,signal_name)
-            %Returns the signal_group instance with the given name
+        function [signal_group,list_index] = signal_group_name_to_instance(self,signal_name)
+            %Returns the signal_group instance with the given name and its
+            %index in self.signal_group_list
             jMax=length(self.signal_group_list);
             j=1;
             found=false;
@@ -716,6 +668,7 @@ classdef Analysis < handle
                 if strcmp(current_signal_group.signal_name,signal_name)
                     found=true;
                     signal_group=current_signal_group;
+                    list_index=j;
                 end
                 j=j+1;
             end
@@ -769,6 +722,36 @@ classdef Analysis < handle
             self.signal_group_file_name=fullfile(self.signal_data_set_root,file_name);
         end
         
+        function [] = set_tracer_file(self,file_name)
+            %Selects a tracer data file
+            %   file_name should be the name of a tracer data file in the
+            %   direcotry SimulationData/TracerOutput/
+            %   The current options are MediumSimData.mat and
+            %   AllSimData.mat
+            if strcmp(file_name,'all')
+                file_name='AllSimData.mat';
+            elseif strcmp(file_name,'large')
+                file_name='LargeSimData.mat';
+            elseif strcmp(file_name,'medium')
+                file_name='MediumSimData.mat';
+            end
+            self.TRACER_FILE_NAME=fullfile(Analysis.SIMULATION_DATA, ...
+                'TracerOutput', ...
+                file_name);
+            
+            %Erase data since there's no point in resetting the tracer file
+            %unless you're going to generate new data
+            self.clean_for_new_raw();
+            
+            %Reset signal_group.n_sets to its default value
+            signal_group_list=self.signal_group_list;
+            jMax=length(signal_group_list);
+            for j=1:jMax
+                signal_group=signal_group_list{j};
+                signal_group.assign_n_sets(0);
+            end
+        end
+        
         function [] = clean_for_new_raw(self)
             %Cleans up self.data_set_root to help with some bugs that can
             %occur if self.generate_raw_data_sets() is run multiple times
@@ -802,6 +785,17 @@ classdef Analysis < handle
                     mkdir(current_dir);
                 end
             end
+            
+            %Delete data set list
+            self.data_set_list={};
+            
+            %Delete Charman tables from signal groups
+            signal_group_list=self.signal_group_list;
+            jMax=length(signal_group_list);
+            for j=1:jMax
+                signal_group=signal_group_list{j};
+                signal_group.delete_Charman_table();
+            end
         end
                 
         function [] = save_data_set(self,data_set)
@@ -813,6 +807,7 @@ classdef Analysis < handle
                 index=data_set.index;
                 out_file_name=strcat(OUTPUT_FILE_ROOT,int2str(index),'.mat');
                 save_mat(out_file_name,data_set);
+%                 data_set.set_analysis_parent(self);
             else
                 msgIdent='Analysis:save_data_set:OversizeDataSet';
                 msgString='Please unload raw and calculated data before saving ';
@@ -827,6 +822,56 @@ classdef Analysis < handle
                 [Analysis.DATA_SET_PREFIX,'*.mat']);
             file_list=dir(search_string);
             data_set_names=fullfile(self.data_set_dir,{file_list.name});
+        end
+        
+        function [] = reassign_analysis_parent(self)
+            %Reassigns the analysis_parent property of all data sets to
+            %self
+            jMax=length(self.data_set_list);
+            for j=1:jMax
+                data_set=self.data_set_list{j};
+                data_set.set_analysis_parent(self);
+            end
+        end
+        
+        function [] = save_signal_group_list(self)
+            %Save self.signal_group_list to the self.signal_data_set_root
+            %directory
+            
+            %Erase analysis parent so the analysis instance does not get
+            %saved
+            jMax=length(self.signal_group_list);
+            for j=1:jMax
+                signal_group=self.signal_group_list{j};
+                signal_group.set_analysis_parent([]);
+            end
+            
+            %Save it
+            save_mat(self.signal_group_file_name,self.signal_group_list);
+            
+            %Reassign analysis_parent
+            jMax=length(self.signal_group_list);
+            for j=1:jMax
+                signal_group=self.signal_group_list{j};
+                signal_group.set_analysis_parent(self);
+            end
+        end
+        
+        function [] = load_signal_group_list(self)
+            %Loads the signal_group_list from the hard drive
+            if exist(self.signal_group_file_name,'file')==2
+                self.signal_group_list=load_mat(self.signal_group_file_name);
+                %Set this analysis instance as the parent
+                jMax=length(self.signal_group_list);
+                for j=1:jMax
+                    signal_group=self.signal_group_list{j};
+                    signal_group.set_analysis_parent(self);
+                end
+            else
+                msgIdent='Analysis:load_signal_group_list:NoSavedList';
+                msgString='No signal_group_list is saved';
+                error(msgIdent,msgString);
+            end
         end
         
         function bool = signal_group_file_exists(self)

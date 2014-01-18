@@ -23,8 +23,7 @@ classdef Signal_Group < handle
             self.signal_dir=fullfile(analysis_parent.signal_data_set_root,signal_name);
             name_string=[Analysis.SIGNAL_DATA_SET_PREFIX,'%d.mat'];
             self.file_name_string=fullfile(self.signal_dir,name_string);
-            max_sets=length(analysis_parent.data_set_list);
-            self.n_sets=min(n_sets,max_sets);
+            self.assign_n_sets(n_sets);
             self.table_dir=fullfile(analysis_parent.table_dir,self.signal_name);
             self.Charman_table=[];
             self.Charman_file_name=fullfile(self.table_dir,'Charman_table.mat');
@@ -77,20 +76,26 @@ classdef Signal_Group < handle
             
             %Do not generate table if it already exists and has entries for
             %all the data sets
-            if ~isempty(self.Charman_table)
+            is_generated=self.is_generated();
+            if ~isempty(self.Charman_table) && is_generated
                 n_data_sets_done=length( unique(self.Charman_table.data_index) );
                 if n_data_sets_done>=self.n_sets
                     return
                 end
             end
             
-            data_set_list=self.get_data_set_list();
-            if isempty(data_set_list)
-                msgIdent='Signal_Group:generate_Charman_table:NoDataSets';
-                msgString='Please generate and save the signal data sets before ';
-                msgString=[msgString,'generating Charman_tables'];
-                error(msgIdent,msgString);
+            %Generate signal data sets if they have not been generated
+            if is_generated==false
+                self.analysis_parent.generate_signal_data_sets();
             end
+            
+            data_set_list=self.get_data_set_list();
+%             if isempty(data_set_list)
+%                 msgIdent='Signal_Group:generate_Charman_table:NoDataSets';
+%                 msgString='Please generate and save the signal data sets before ';
+%                 msgString=[msgString,'generating Charman_tables'];
+%                 error(msgIdent,msgString);
+%             end
             jMax_data_set=length(data_set_list);
             
             fprintf('Generating Charman table for %s... ',self.signal_name);
@@ -103,17 +108,18 @@ classdef Signal_Group < handle
                 close_pool_when_done=1;
             end
             
+            %Things to iterate over
             algorithm_list={ ...
-                @(date_times,data,period)CharmanII(date_times,data,period), 'Charman II';
+%                 @(date_times,data,period)CharmanII(date_times,data,period), 'Charman II';
                 @(date_times,data,period)CharmanIV(date_times,data,period), 'Charman IV';
                 };
             period_list={ ...
                 'day','day';
-                'year','year';
+%                 'year','year';
                 };
             data_type_list={ ...
                 1,'z-position'; ...
-                2,'wait_time'; ...
+%                 2,'wait_time'; ...
                 };
             direction_list={ ...
                 1,'left'; ...
@@ -199,10 +205,6 @@ classdef Signal_Group < handle
             A_1=vertcat(A_1_cell_array{:});
             
             self.Charman_table=table(data_index,data_type,algorithm,period,direction,A_1);
-            %Recreate Charman_table directory if it has been deleted
-            if exist(self.table_dir,'dir')~=7
-                mkdir(self.table_dir);
-            end
             self.save_Charman_table();
             if close_pool_when_done==1
 %                 matlabpool('close')
@@ -226,20 +228,20 @@ classdef Signal_Group < handle
         function set_n_sets(self,n_sets)
             %Updates self.n_sets and calls
             %analysis_parent.generate_signal_data_sets()
-            analysis=self.analysis_parent;
-            
-            max_sets=length(analysis.data_set_list);
-            if max_sets==0
-                analysis.load_data_sets();
-                max_sets=length(analysis.data_set_list);
-            end
-            self.n_sets=min(n_sets,max_sets);
-            
-            analysis.generate_signal_data_sets();
+            self.assign_n_sets(n_sets);
+            self.analysis_parent.generate_signal_data_sets();
         end
-        
+            
         function [] = save_Charman_table(self)
             %Saves the Charman table to the Tables subdirectory
+            
+            %Recreate Charman_table directory if it has been deleted
+            if exist(self.table_dir,'dir')~=7
+                mkdir(self.table_dir);
+            end
+            
+            %Save it.  Error out if it's empty so that we won't overwrite a
+            %full one on accident
             if ~isempty(self.Charman_table)
                 save_mat(self.Charman_file_name,self.Charman_table);
             else
@@ -259,6 +261,19 @@ classdef Signal_Group < handle
                 error(msgIdent,msgString);
             end
         end
+        
+        function [bool] = is_generated(self)
+            %Boolean tells whether or not the signal data sets exist in
+            %their directory
+            name_string=[Analysis.SIGNAL_DATA_SET_PREFIX,'*.mat'];
+            file_name_regex=fullfile(self.signal_dir,name_string);
+            file_obj_list=dir(file_name_regex);
+            if length(file_obj_list)<self.n_sets
+                bool=false;
+            else
+                bool=true;
+            end
+        end
             
     end %End methods
     
@@ -272,6 +287,40 @@ classdef Signal_Group < handle
             else
                 bool=false;
             end
+        end
+        
+        function [] = assign_n_sets(self,n_sets)
+            %Figures out value to assign to self.n_sets from the given
+            %argument.  If n_sets is 0, it uses a default value
+            analysis=self.analysis_parent;
+            
+            max_sets=length(analysis.data_set_list);
+            if max_sets==0
+                evalc('analysis.load_data_sets();');
+                max_sets=length(analysis.data_set_list);
+            end
+            
+            %Set it to 10% of sets or 1000, whichever is larger (it will
+            %get fixed below if this is too much)
+            if n_sets==0
+                n_sets=max( 0.1*max_sets,1000);
+            end
+            
+            %Make n_sets isn't too large and return
+            self.n_sets=min(n_sets,max_sets);
+        end
+        
+        function reset_n_sets(self)
+            %Reassigns n_sets to its current values, which reruns checks on
+            %its value.  Make sure to regerneate signal data sets
+            %afterwards
+            self.assign_n_sets(self.n_sets);
+        end
+        
+        function delete_Charman_table(self)
+            %Deteletes the Charman table.
+            %   Useful for when changing data sets
+            self.Charman_table=table();
         end
         
     end
