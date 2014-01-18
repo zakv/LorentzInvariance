@@ -73,6 +73,8 @@ classdef Analysis < handle
         function self = Analysis(GENERATOR_NAME)
             %Initializes an Analysis object.
             
+            addpath('mex');
+            
             %Properties that vary between instances
             self.set_GENERATOR_NAME(GENERATOR_NAME);
             self.data_set_list={};
