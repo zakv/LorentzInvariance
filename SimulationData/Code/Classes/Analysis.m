@@ -5,7 +5,7 @@ classdef Analysis < handle
     
     properties (Constant,Hidden)
         %Properties of the Analysis Class
-        SIMULATION_DATA='../'; %Path to SimulationData/ (this file should
+        SIMULATION_DATA='../../'; %Path to SimulationData/ (this file should
         %be in SimulationData/code/)
         N_EVENTS=386; %Number of events per Data_Set
         N_LEFT=145; %Number of quip left data points.
@@ -73,7 +73,11 @@ classdef Analysis < handle
         function self = Analysis(GENERATOR_NAME)
             %Initializes an Analysis object.
             
-            addpath('mex');
+            addpath('../CorrelationFunctions/');
+            addpath('../Mex/');
+            addpath('../OtherFunctions/');
+            addpath('../ParameterFunctions/');
+            addpath('../SignalFunctions/');
             
             %Properties that vary between instances
             self.set_GENERATOR_NAME(GENERATOR_NAME);
