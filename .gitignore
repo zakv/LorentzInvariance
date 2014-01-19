@@ -1,5 +1,9 @@
 # Custom ignores
 
+# Temporarily ignore EventTime #
+################################
+EventTime/
+
 # Linux generated files #
 #########################
 *.fuse*
