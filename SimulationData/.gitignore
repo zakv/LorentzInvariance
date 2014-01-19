@@ -2,7 +2,9 @@
 # old code that is unused but may be good
 # to keep around for reference, so we'll
 # ignore it
-old/
+# Actually I'll include it in this commit
+# so I can delete it form future verisons
+#old/
 
 # I was considering using JPL ephemerides
 # for the aephem stuff and I made a
