@@ -152,17 +152,6 @@ classdef Analysis < handle
             end
         end
         
-        function new = deep_copy(self)
-            % Create a new copy in memory
-            new = feval(class(self),self.GENERATOR_NAME);
-            
-            % Copy all properties.
-            p = fieldnames(struct(self));
-            for i = 1:length(p)
-                new.(p{i}) = self.(p{i});
-            end
-        end
-        
         function [] = generate_raw_data_sets(self)
             %Generates the Raw_Data_Sets using the generate_event_times.m file
             %stored in self.data_set_root
