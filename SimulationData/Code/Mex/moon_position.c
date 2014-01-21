@@ -2,7 +2,7 @@
 * Computes the position of the moon.  This returns three arrays, one for
 * each of the following: altitude, azimuth, distance (in that order)
 * 
-* To compile: mex -O CFLAGS="\$CFLAGS -std=c99" -I../../aephem-2.0.0/src/ moon_position.c ../../aephem-2.0.0/src/.libs/libaephem.so
+* To compile: mex -O CFLAGS="\$CFLAGS -std=c99" -I../../../aephem-2.0.0/src/ moon_position.c ../../../aephem-2.0.0/src/.libs/libaephem.so
 * 
 * Input Times should be Unix Time, which is seconds since
 * January 1 1970 00:00:00 UTC

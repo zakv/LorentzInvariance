@@ -10,9 +10,15 @@ classdef Random_Generator
     
     methods
         
-        function self = Random_Generator()
-            %Initializes the random generator instance
-            self.seed=mod(int32((now-today)*1000*feature('getpid')),2^32);
+        function self = Random_Generator(varargin)
+            %Initializes the random generator instance.
+            %  Can optionally specify the seed
+            if length(varargin)<1
+                self.seed=varargin{1};
+            else
+                int32((10000*now-floor(now*10000))*10^9);
+                self.seed=mod(int32((now-today)*1000*feature('getpid')),2^32);
+            end
             self.stream=RandStream('twister','Seed',self.seed);
             rand(100); %Generate 10,000 numbers to get it well randomized (hopefully)
         end

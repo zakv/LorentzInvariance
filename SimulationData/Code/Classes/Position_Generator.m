@@ -12,15 +12,25 @@ classdef Position_Generator < handle
     
     methods
         
-        function self = Position_Generator()
-            %Intiallizes an Event Generator instance
-            self.tracer_file_name=fullfile(Analysis.SIMULATION_DATA, ...
-                'TracerOutput', ...
-                'LargeSimDataSorted.mat'); %Tracer output file
+        function self = Position_Generator(varargin)
+            %Intializes an Event Generator instance
+            %   A tracer file name and random generator seed can optionally
+            %   be specified (call the function with two arguments in that
+            %   order).
+            if length(varargin)>1
+                tracer_name=varargin{1};
+                seed=varargin{2};
+                self.tracer_file_name=Analysis.interpret_tracer_name(tracer_name);
+                random_generator=Random_Generator(seed); %#ok<PROP>
+            else
+                self.tracer_file_name=fullfile(Analysis.SIMULATION_DATA, ...
+                    'TracerOutput', ...
+                    'LargeSimDataSorted.mat'); %Tracer output file
+                random_generator=Random_Generator(); %#ok<PROP>
+            end
             self.load_tracer_data();
-            random_generator=Random_Generator();
-            self.random_generator=random_generator();
-            self.rand=@random_generator.rand;
+            self.random_generator=random_generator; %#ok<PROP>
+            self.rand=@random_generator.rand; %#ok<PROP>
         end
         
         function [] = set_tracer_file(self,file_name)
@@ -50,6 +60,11 @@ classdef Position_Generator < handle
             data_array=load_mat(self.tracer_file_name);
             self.z_positions=data_array(:,2);
             self.index_scale=length(self.z_positions);
+        end
+        
+        function [] = unload_tracer_data(self)
+            %Unloads the tracer data to free RAM
+            self.z_positions=[];
         end
         
         function z_positions = generate_z_positions(self,n_events)

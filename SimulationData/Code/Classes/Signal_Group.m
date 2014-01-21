@@ -5,12 +5,18 @@ classdef Signal_Group < handle
         analysis_parent %Parent analysis instance
         signal_func %Handle to function that adds the signal
         signal_name %Name string for function
-        signal_dir %Directory that stores all of the signal data sets
-        file_name_string %Name of files with '%d' in place of index (with path)
+        file_name_string %Name of data set files with '%d' in place of index (with path)
         n_sets %Number of signal data sets to make
-        table_dir %Directory where tables are stored
+        data_set_list %List of Data_Set objects
         Charman_table %Results from Andy's algorithms
         Charman_file_name %File name (including relative path)
+        
+        %Directories
+        signal_dir %Root directory for the signal group's data
+        data_set_dir %Directory where all the data sets are stored
+        raw_data_set_dir %Directory where all the Raw_Data_Sets are stored
+        calc_data_set_dir %Directory where all the Calc_Data_Sets are stored
+        table_dir %Directory where tables are stored
     end
     
     methods
@@ -20,21 +26,81 @@ classdef Signal_Group < handle
             self.analysis_parent=analysis_parent;
             self.signal_func=signal_func;
             self.signal_name=signal_name;
-            self.signal_dir=fullfile(analysis_parent.signal_data_set_root,signal_name);
-            name_string=[Analysis.SIGNAL_DATA_SET_PREFIX,'%d.mat'];
-            self.file_name_string=fullfile(self.signal_dir,name_string);
-            self.assign_n_sets(n_sets);
-            self.table_dir=fullfile(analysis_parent.table_dir,self.signal_name);
-            self.Charman_table=[];
-            self.Charman_file_name=fullfile(self.table_dir,'Charman_table.mat');
+            self.set_n_sets(n_sets);
             
-            %Make its directories.
-            if exist(self.signal_dir,'dir')~=7
-                mkdir(self.signal_dir);
+            %Directories
+            self.signal_dir=fullfile(analysis_parent.data_set_root,signal_name);
+            self.data_set_dir=fullfile(self.signal_dir,'DataSets');
+            self.raw_data_set_dir=fullfile(self.signal_dir,'RawDataSets');
+            self.calc_data_set_dir=fullfile(self.signal_dir,'CalcDataSets');
+            self.table_dir=fullfile(self.signal_dir,'Tables');
+            self.create_directories();
+            
+            name_string=[Analysis.DATA_SET_PREFIX,'%d.mat'];
+            self.file_name_string=fullfile(self.signal_dir,name_string);
+            self.data_set_list={};
+            self.Charman_table=table();
+            self.Charman_file_name=fullfile(self.table_dir,'Charman_table.mat');
+        end
+        
+        function [] = run(self)
+            %Creates data sets, raw data sets, signal data sets, and
+            %Charman tables.
+            
+            %Check if already generated; return if necessary
+            if self.is_generated()
+                return
             end
-            if exist(self.table_dir,'dir')~=7
-                mkdir(self.table_dir);
+            
+            self.data_set_list=cell(1,self.n_sets);
+            position_generator=self.analysis_parent.position_generator_list{1};
+            Charman_chunks=cell(1,self.n_sets);
+            for j_data_set_index=1:self.n_sets
+                %Initialize data set
+                data_set=Data_Set(self,j_data_set_index);
+                
+                %Create raw data set and calc data set
+                %get date times (and put quip left first)
+                [date_times,n_left]=generate_event_times();
+                n_events=length(date_times);
+                %get z-positions
+                z_positions=position_generator.generate_z_positions(n_events);
+                data_array=[date_times,z_positions];
+                data_set.create_raw_data_set(data_array,n_left);
+                data_set.create_calc_data_set();
+                
+                %add signal
+                self.signal_func(data_set);
+                
+                %Create row for Charman table
+                data_set_index=j_data_set_index*ones(3,1);
+                direction=categorical({'left';'right';'averaged'});
+                A_1=zeros(3,1);
+                abs_A_1=zeros(3,1);
+                
+                for j_direction=1:2
+                    date_times=data_set.raw_data_set.get_date_times(j_direction);
+                    data=data_set.raw_data_set.get_z_positions(j_direction);
+                    A_1(j_direction)=CharmanIV(date_times,data,'day');
+                    abs_A_1(j_direction)=abs( A_1(j_direction) );
+                end
+                A_1(3)=data_set.weighted_average(A_1(1),A_1(2));
+                abs_A_1(3)=data_set.weighted_average(abs_A_1(1),abs_A_1(2));
+                Charman_chunks{j_data_set_index}= ...
+                    table(data_set_index,direction,A_1,abs_A_1);
+                
+                %Unload raw data set and calc data set
+                data_set.unload_raw_data_set();
+                data_set.unload_calc_data_set();
+                self.save_data_set(data_set);
+                self.data_set_list{j_data_set_index}=data_set;
             end
+            
+            %Assemble and save Charman_table
+            Charman_table=vertcat(Charman_chunks{:}); %#ok<PROP>
+            Charman_table.direction=categorical(Charman_table.direction); %#ok<PROP>
+            self.Charman_table=Charman_table; %#ok<PROP>
+            self.save_Charman_table();
         end
         
         function [] = set_analysis_parent(self,analysis_parent)
@@ -47,191 +113,137 @@ classdef Signal_Group < handle
             self.analysis_parent=analysis_parent;
         end
         
-        function generate_signal_data_set(self,data_set)
-            %Generates a signal data set from the given data set.  Runs
-            %faster if the raw_data_set is already_loaded
-            data_set_index=data_set.index;
-            if data_set_index<=self.n_sets
-                file_name=sprintf(self.file_name_string,data_set_index);
-                if exist(file_name,'file')~=2
-                    %Ok, need to make the signal data set.  Time to load
-                    %the raw_data_set if necessary
-                    unload_raw_data_set=false;
-                    if isempty(data_set.raw_data_set)
-                        unload_raw_data_set=true;
-                        data_set.load_raw_data_set();
-                    end
-                    data_set.create_signal_data_set(self.signal_func, ...
-                        self.signal_name,file_name);
-                    if unload_raw_data_set==true
-                        data_set.unload_raw_data_set();
-                    end
-                end
-            end
-        end
-        
-        function [] = generate_Charman_table(self)
-            %Creates a table with results from the two Charman algorithms
-            %for periods of both day and year
+        function [] = load_data_set_list(self)
+            %Loads Data_Sets into memory
             
-            %Do not generate table if it already exists and has entries for
-            %all the data sets
-            is_generated=self.is_generated();
-            if ~isempty(self.Charman_table) && is_generated
-                n_data_sets_done=length( unique(self.Charman_table.data_index) );
-                if n_data_sets_done>=self.n_sets
-                    return
-                end
-            end
-            
-            %Generate signal data sets if they have not been generated
-            if is_generated==false
-                self.analysis_parent.generate_signal_data_sets();
-            end
-            
-            data_set_list=self.get_data_set_list();
-%             if isempty(data_set_list)
-%                 msgIdent='Signal_Group:generate_Charman_table:NoDataSets';
-%                 msgString='Please generate and save the signal data sets before ';
-%                 msgString=[msgString,'generating Charman_tables'];
-%                 error(msgIdent,msgString);
-%             end
-            jMax_data_set=length(data_set_list);
-            
-            fprintf('Generating Charman table for %s... ',self.signal_name);
-%             addpath ../../CharmanUltra/
+            disp('Loading data sets...');
             tic;
-            
-            close_pool_when_done=0;
-            if matlabpool('size')==0
-                matlabpool('open');
-                close_pool_when_done=1;
-            end
-            
-            %Things to iterate over
-            algorithm_list={ ...
-%                 @(date_times,data,period)CharmanII(date_times,data,period), 'Charman II';
-                @(date_times,data,period)CharmanIV(date_times,data,period), 'Charman IV';
-                };
-            period_list={ ...
-                'day','day';
-%                 'year','year';
-                };
-            data_type_list={ ...
-                1,'z-position'; ...
-%                 2,'wait_time'; ...
-                };
-            direction_list={ ...
-                1,'left'; ...
-                2,'right'; ...
-                3,'averaged'; ...
-                };
-            jMax_algorithm=size(algorithm_list,1);
-            jMax_period=size(period_list,1);
-            jMax_data_type=size(data_type_list,1);
-            
-            %Initialize variables that are divided among workers
-            signal_name=self.signal_name; %#ok<PROP>
-            weighted_average=@Analysis.weighted_average;
-            data_set_index_cell_array=cell(jMax_data_set,1);
-            algorithm_cell_array=cell(jMax_data_set,1);
-            period_cell_array=cell(jMax_data_set,1);
-            data_type_cell_array=cell(jMax_data_type);
-            direction_cell_array=cell(jMax_data_set,1);
-            A_1_cell_array=cell(jMax_data_set,1);
-            parfor j_data_set_index=1:jMax_data_set
-                data_set=data_set_list{j_data_set_index};
-                data_set.load_signal_data_set(signal_name); %#ok<PROP>
-                raw_data_set=data_set.signal_table{signal_name,'signal_data_set'}; %#ok<PROP>
-                raw_data_set=raw_data_set{1}; %Get it out of its cell
-                
-                rows_per_chunk=jMax_algorithm*jMax_period*jMax_data_type*3; %3 for direction
-                data_set_index_chunk=zeros(rows_per_chunk,1);
-                algorithm_chunk=cell(rows_per_chunk,1);
-                period_chunk=cell(rows_per_chunk,1);
-                data_type_chunk=cell(rows_per_chunk,1);
-                direction_chunk=cell(rows_per_chunk,1);
-                A_1_chunk=zeros(rows_per_chunk,1);
-                j=1;
-                for j_data=1:jMax_data_type %wait_times or z-position
-                    data_type_name=data_type_list{j_data,2}; %#ok<PFBNS>
-                    for j_algorithm=1:jMax_algorithm
-                        algorithm=algorithm_list{j_algorithm,1}; %#ok<PFBNS>
-                        algorithm_name=algorithm_list{j_algorithm,2};
-                        for j_period=1:jMax_period
-                            period=period_list{j_period,1}; %#ok<PFBNS>
-                            period_name=period_list{j_period,2};
-                            mini_A_1_array=zeros(1,2); %for averaging left/right data
-                            for j_direction=1:2 %left then right, then averaged below
-                                %j=(j_algorithm-1)*jMax_algorithm+j_period;
-                                %j=(j-1)*3;
-                                data_set_index_chunk(j)=j_data_set_index;
-                                algorithm_chunk{j}=algorithm_name;
-                                period_chunk{j}=period_name;
-                                data_type_chunk{j}=data_type_name;
-                                direction_chunk{j}=direction_list{j_direction,2}; %#ok<PFBNS>
-                                date_times=raw_data_set.get_date_times(j_direction);
-                                data=raw_data_set.get_data(j_data,j_direction);
-                                mini_A_1_array(j_direction)=algorithm(date_times,data,period);
-                                A_1_chunk(j)=mini_A_1_array(j_direction);
-                                j=j+1;
-                            end
-                            %averated left and right
-                            j_direction=j_direction+1;
-                            data_set_index_chunk(j)=j_data_set_index;
-                            algorithm_chunk{j}=algorithm_name;
-                            period_chunk{j}=period_name;
-                            data_type_chunk{j}=data_type_name;
-                            direction_chunk{j}=direction_list{j_direction,2};
-                            A_1_chunk(j)=weighted_average(mini_A_1_array(1),mini_A_1_array(2));
-                            j=j+1;
-                        end
-                    end
+            data_set_names=self.get_data_set_names();
+            n_elements=numel(data_set_names);
+            if n_elements==0
+                self.data_set_list={};
+            else
+                self.data_set_list=cell(1,n_elements);
+                indices=zeros(1,n_elements);
+                for j=1:n_elements
+                    file_name=data_set_names{j};
+                    data_set=load_mat(file_name);
+                    data_set.set_signal_parent(self);
+                    self.data_set_list{j}=data_set;
+                    indices(j)=data_set.index;
                 end
-                data_set_index_cell_array{j_data_set_index}=data_set_index_chunk;
-                algorithm_cell_array{j_data_set_index}=algorithm_chunk;
-                period_cell_array{j_data_set_index}=period_chunk;
-                data_type_cell_array{j_data_set_index}=data_type_chunk;
-                direction_cell_array{j_data_set_index}=direction_chunk;
-                A_1_cell_array{j_data_set_index}=A_1_chunk;
-                data_set.unload_signal_data_set(signal_name); %#ok<PROP>
-%                 data_set_list{j_data_set_index}=data_set; %Should help with parfor issues
+                [~,order]=sort(indices);
+                self.data_set_list=self.data_set_list(order);
             end
-            data_index=vertcat(data_set_index_cell_array{:});
-            algorithm=categorical( vertcat(algorithm_cell_array{:}) );
-            period=categorical( vertcat(period_cell_array{:}) );
-            data_type=categorical( vertcat(data_type_cell_array{:}) );
-            direction=categorical( vertcat(direction_cell_array{:}) );
-            A_1=vertcat(A_1_cell_array{:});
-            
-            self.Charman_table=table(data_index,data_type,algorithm,period,direction,A_1);
-            self.save_Charman_table();
-            if close_pool_when_done==1
-%                 matlabpool('close')
-            end
-            
-            fprintf('done\n');
-            fprintf('Generating Charman table for %s took %0.2f seconds\n',self.signal_name,toc);
-        end
-        
-        function data_set_list = get_data_set_list(self)
-            %Returns a list of the data_sets that should have a signal data
-            %set for this signal group (assuming they've been generated).
-            analysis_parent=self.analysis_parent; %#ok<PROP>
-            n_parent_data_sets=length(analysis_parent.data_set_list); %#ok<PROP>
-            if n_parent_data_sets<self.n_sets
-                analysis_parent.load_data_sets(); %#ok<PROP>
-            end
-            data_set_list=analysis_parent.data_set_list(1:self.n_sets); %#ok<PROP>
+            disp('Finished loading data sets');
+            fprintf('Loading data sets took %0.2f seconds\n',toc);
         end
         
         function set_n_sets(self,n_sets)
-            %Updates self.n_sets and calls
-            %analysis_parent.generate_signal_data_sets()
-            self.assign_n_sets(n_sets);
-            self.analysis_parent.generate_signal_data_sets();
-        end
+            %Figures out value to assign to self.n_sets from the given
+            %argument.  If n_sets is 0, it uses a default value
             
+            %Set default value if n_sets==0
+            if n_sets==0
+                n_sets=100;
+            end
+            
+            %Make n_sets isn't too large and return
+            self.n_sets=n_sets;
+        end
+        
+        function [] = load_Charman_table(self)
+            %Loads the Charman table from the Tables subdirectory
+            if self.Charman_table_file_exists()
+                self.Charman_table=load_mat(self.Charman_file_name);
+            else
+                msgIdent='Signal_Group:load_Charman_table:NoSavedTable';
+                msgString='No Charman_table is saved';
+                error(msgIdent,msgString);
+            end
+        end
+        
+        function [bool] = is_generated(self)
+            %Boolean tells whether or not the data sets, raw data sets,
+            %calc data sets, and Charman table exist
+            bool=true;
+            
+            name_string=[Analysis.DATA_SET_PREFIX,'*.mat'];
+            file_name_regex=fullfile(self.data_set_dir,name_string);
+            file_obj_list=dir(file_name_regex);
+            n_data_sets=length(file_obj_list);
+            
+            name_string=[Analysis.RAW_DATA_SET_PREFIX,'*.mat'];
+            file_name_regex=fullfile(self.raw_data_set_dir,name_string);
+            file_obj_list=dir(file_name_regex);
+            n_raw_data_sets=length(file_obj_list);
+            
+            name_string=[Analysis.CALC_DATA_SET_PREFIX,'*.mat'];
+            file_name_regex=fullfile(self.calc_data_set_dir,name_string);
+            file_obj_list=dir(file_name_regex);
+            n_calc_data_sets=length(file_obj_list);
+            
+            n_array=[n_data_sets,n_raw_data_sets,n_calc_data_sets];
+            min_n=min(n_array);
+            if min_n<self.n_sets
+                bool=false;
+            end
+            
+            if self.Charman_table_file_exists()==false
+                bool=false;
+            end
+            
+        end
+        
+    end %End methods
+    
+    methods (Hidden)
+        
+        function [] = create_directories(self)
+            %Create directories for storing the signal group's data if they
+            %do not already exist
+            dir_list={ ...
+                self.signal_dir, ...
+                self.data_set_dir, ...
+                self.raw_data_set_dir, ...
+                self.calc_data_set_dir, ...
+                self.table_dir, ...
+                };
+            jMax=length(dir_list);
+            for j=1:jMax
+                directory=dir_list{j};
+                if exist(directory,'dir')~=7
+                    mkdir(directory);
+                end
+            end
+        end
+        
+        function [] = save_data_set(self,data_set)
+            %Saves a Data_Set object
+            if isempty(data_set.raw_data_set) && isempty(data_set.calc_data_set)
+                data_set.set_signal_parent([]); %So save_mat doesn't save the parent as well
+                OUTPUT_FILE_ROOT=fullfile(self.data_set_dir, ...
+                    Analysis.DATA_SET_PREFIX);
+                index=data_set.index;
+                out_file_name=strcat(OUTPUT_FILE_ROOT,int2str(index),'.mat');
+                save_mat(out_file_name,data_set);
+                data_set.set_signal_parent(self);
+            else
+                msgIdent='Analysis:save_data_set:OversizeDataSet';
+                msgString='Please unload raw and calculated data before saving ';
+                msgString=[msgString,'a Data_Set'];
+                error(msgIdent,msgString)
+            end
+        end
+        
+        function data_set_names = get_data_set_names(self)
+            %Returns a list of full paths to data sets
+            search_string=fullfile(self.data_set_dir, ...
+                [Analysis.DATA_SET_PREFIX,'*.mat']);
+            file_list=dir(search_string);
+            data_set_names=fullfile(self.data_set_dir,{file_list.name});
+        end
+        
         function [] = save_Charman_table(self)
             %Saves the Charman table to the Tables subdirectory
             
@@ -251,34 +263,6 @@ classdef Signal_Group < handle
             end
         end
         
-        function [] = load_Charman_table(self)
-            %Loads the Charman table from the Tables subdirectory
-            if self.Charman_table_file_exists()
-                self.Charman_table=load_mat(self.Charman_file_name);
-            else
-                msgIdent='Signal_Group:load_Charman_table:NoSavedTable';
-                msgString='No Charman_table is saved';
-                error(msgIdent,msgString);
-            end
-        end
-        
-        function [bool] = is_generated(self)
-            %Boolean tells whether or not the signal data sets exist in
-            %their directory
-            name_string=[Analysis.SIGNAL_DATA_SET_PREFIX,'*.mat'];
-            file_name_regex=fullfile(self.signal_dir,name_string);
-            file_obj_list=dir(file_name_regex);
-            if length(file_obj_list)<self.n_sets
-                bool=false;
-            else
-                bool=true;
-            end
-        end
-            
-    end %End methods
-    
-    methods (Hidden)
-        
         function bool = Charman_table_file_exists(self)
             %Returns true or false depending on whether or not the
             %Charman_table file exists
@@ -289,38 +273,26 @@ classdef Signal_Group < handle
             end
         end
         
-        function [] = assign_n_sets(self,n_sets)
-            %Figures out value to assign to self.n_sets from the given
-            %argument.  If n_sets is 0, it uses a default value
-            analysis=self.analysis_parent;
-            
-            max_sets=length(analysis.data_set_list);
-            if max_sets==0
-                evalc('analysis.load_data_sets();');
-                max_sets=length(analysis.data_set_list);
-            end
-            
-            %Set it to 10% of sets or 1000, whichever is larger (it will
-            %get fixed below if this is too much)
-            if n_sets==0
-                n_sets=max( 0.1*max_sets,1000);
-            end
-            
-            %Make n_sets isn't too large and return
-            self.n_sets=min(n_sets,max_sets);
-        end
-        
-        function reset_n_sets(self)
-            %Reassigns n_sets to its current values, which reruns checks on
-            %its value.  Make sure to regerneate signal data sets
-            %afterwards
-            self.assign_n_sets(self.n_sets);
+        function S_array = extract_S_array(self)
+            %Helper function used by generate_Charman_histograms
+            filtered_table=filter_table(self.Charman_table,'direction','averaged');
+            S_array=filtered_table.abs_A_1;
         end
         
         function delete_Charman_table(self)
             %Deteletes the Charman table.
-            %   Useful for when changing data sets
             self.Charman_table=table();
+        end
+        
+        function [] = make_clean(self)
+            %Deletes all data for this signal group
+            if exist(self.signal_dir,'dir')==7
+                rmdir(self.signal_dir,'s')
+                mkdir(self.signal_dir);
+            end
+            self.create_directories();
+            self.data_set_list={};
+            self.delete_Charman_table();
         end
         
     end

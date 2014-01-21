@@ -16,7 +16,7 @@ function [ v_x,v_y,v_z ] = datenum_to_cmb_velocity( datenum_times )
         warning off MATLAB:loadlibrary:FunctionNotFound;
         warning off MATLAB:loadlibrary:parsewarnings;
         %Load the aephem library (must be loaded to run the mex functions)
-        loadlibrary('../../aephem-2.0.0/src/.libs/libaephem.so','../../aephem-2.0.0/src/aephem.h');
+        loadlibrary('../../../aephem-2.0.0/src/.libs/libaephem.so','../../../aephem-2.0.0/src/aephem.h');
         %Enable warnings in case other code raises them in the future
         warning on MATLAB:loadlibrary:TypeNotFound;
         warning on MATLAB:loadlibrary:TypeNotFoundForStructure;

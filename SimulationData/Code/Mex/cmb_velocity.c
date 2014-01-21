@@ -1,7 +1,7 @@
 /*
 * Computes the velocity of the earth in the CMB frame
 * 
-* To compile: mex -O CFLAGS="\$CFLAGS -std=c99" -I../../aephem-2.0.0/src/ cmb_velocity.c ../../aephem-2.0.0/src/.libs/libaephem.so
+* To compile: mex -O CFLAGS="\$CFLAGS -std=c99" -I../../../aephem-2.0.0/src/ cmb_velocity.c ../../../aephem-2.0.0/src/.libs/libaephem.so
 * 
 * Input Times should be Unix Time, which is seconds since
 * January 1 1970 00:00:00 UTC

@@ -6,19 +6,20 @@ classdef Raw_Data_Set
     properties (SetAccess = private)
         %Left data
         left_date_times %Wall date/time of left events
-        left_wait_times %Wait times of left events (time between quench and
-                        %annihilation in seconds)
         left_z_positions %z-position of left annihilations
+        n_left %Number of quip left data points
         
         %Right data
         right_date_times %Wall date/time of right events
-        right_wait_times %Wait times of right events (time between quench
-                         %and annihilation in seconds)
         right_z_positions %z-position of right annihilations
+        n_right %Number of quip right data points
+        
+        %Other data
+        n_events %Number of events
     end
     
     methods
-        function self = Raw_Data_Set(data_array)
+        function self = Raw_Data_Set(data_array,n_left)
             %Initializes a Raw_Data_Set assuming first Analysis.n_left rows
             %are quip left data points.
             %   data_array should have three columns, first should be the
@@ -27,35 +28,31 @@ classdef Raw_Data_Set
             %   points taken with quip left (all quip left data should
             %   appear before the quip right data);
             
-            n_left=Analysis.N_LEFT;
+            self.n_left=n_left;
+            self.n_events=size(data_array,1);
+            self.n_right=self.n_events-self.n_left;
             
             %Left data
             self.left_date_times=data_array(1:n_left,1);
-            self.left_wait_times=data_array(1:n_left,2);
-            self.left_z_positions=data_array(1:n_left,3);
+            self.left_z_positions=data_array(1:n_left,2);
             
             %Right data
             self.right_date_times=data_array((n_left+1):end,1);
-            self.right_wait_times=data_array((n_left+1):end,2);
-            self.right_z_positions=data_array((n_left+1):end,3);
+            self.right_z_positions=data_array((n_left+1):end,2);
         end
         
-        function data = get_data(self,data_index,direction_index)
-            %Returns an array of z-positions or wait_times for either quip
-            %left or quir right, depending on the given indices
+        function data = get_z_positions(self,direction_index)
+            %Returns an array of z-positions for either quip left or quir
+            %right, depending on the given direction_index.
             %   1 implies z-positions or quip left
             %   2 implies wait_times or quip right
-            if data_index==1 && direction_index==1
+            if direction_index==1
                 data=self.left_z_positions;
-            elseif data_index==1 && direction_index==2
+            elseif direction_index==2
                 data=self.right_z_positions;
-            elseif data_index==2 && direction_index==1
-                data=self.left_wait_times;
-            elseif data_index==2 && direction_index==2
-                data=self.right_wait_times;
             else
                 msgIdent='Raw_Data_Set:get_data:IndexOutOfBounds';
-                msgString='data_index and direction_index must be 1 or 2';
+                msgString='direction_index must be 1 or 2';
                 error(msgIdent,msgString);
             end
         end
