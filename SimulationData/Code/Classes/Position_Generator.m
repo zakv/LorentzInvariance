@@ -17,17 +17,27 @@ classdef Position_Generator < handle
             %   A tracer file name and random generator seed can optionally
             %   be specified (call the function with two arguments in that
             %   order).
-            if length(varargin)>1
-                tracer_name=varargin{1};
-                seed=varargin{2};
-                self.tracer_file_name=Analysis.interpret_tracer_name(tracer_name);
-                random_generator=Random_Generator(seed); %#ok<PROP>
-            else
-                self.tracer_file_name=fullfile(Analysis.SIMULATION_DATA, ...
-                    'TracerOutput', ...
-                    'LargeSimDataSorted.mat'); %Tracer output file
-                random_generator=Random_Generator(); %#ok<PROP>
+            
+            %Default values
+            self.tracer_file_name=fullfile(Analysis.SIMULATION_DATA, ...
+                'TracerOutput', ...
+                'LargeSimDataSorted.mat'); %Tracer output file
+            random_generator=Random_Generator(); %#ok<PROP>
+            
+            %Interpret input
+            jMax=length(varargin);
+            for j=1:jMax
+                arg=varargin{j};
+                if ischar(arg)
+                    tracer_name=arg;
+                    self.tracer_file_name=Analysis.interpret_tracer_name(tracer_name);
+                elseif isnumeric(arg)
+                    seed=arg;
+                    random_generator=Random_Generator(seed); %#ok<PROP>
+                end
             end
+            
+            %Perform intialization
             self.load_tracer_data();
             self.random_generator=random_generator; %#ok<PROP>
             self.rand=@random_generator.rand; %#ok<PROP>

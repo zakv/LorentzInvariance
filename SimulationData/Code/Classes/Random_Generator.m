@@ -13,7 +13,7 @@ classdef Random_Generator
         function self = Random_Generator(varargin)
             %Initializes the random generator instance.
             %  Can optionally specify the seed
-            if length(varargin)<1
+            if length(varargin)>=1
                 self.seed=varargin{1};
             else
                 int32((10000*now-floor(now*10000))*10^9);
