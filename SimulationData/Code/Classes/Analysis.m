@@ -79,10 +79,8 @@ classdef Analysis < handle
             %Load signal_group_list list if there is a saved copy
             if self.signal_group_file_exists()
                 self.load_signal_group_list();
-            end
-            
-            %If signal_group_list is empty, add null and daily signals
-            if isempty(self.signal_group_list)
+            else
+                %Add default signal groups
                 self.add_signal_group(@signal_null,'null');
                 self.add_signal_group(@(data_set) ...
                     signal_sine(data_set,0.01,'day',0),'daily sine');
@@ -360,7 +358,6 @@ classdef Analysis < handle
                     %Do first histogram
                     signal_group=signal_group_list{1}; %#ok<PROP>
                     S_array=signal_group.extract_S_array();
-                    S_array_size=size(S_array);
                     bin_height=zeros(n_bins,jMax_signal_group);
                     [bin_count,bin_center]=hist(S_array,n_bins);
                     bin_height(:,1)=bin_count/sum(bin_count);
@@ -394,8 +391,7 @@ classdef Analysis < handle
                 end
             end
             
-            disp('Finished generating Charman histograms');
-            fprintf('Generating Charman histograms took %0.2f seconds\n',toc);
+            fprintf('Done.  Took %0.2f seconds\n',toc);
         end
         
         function data_set = get_one_data_set(self)
