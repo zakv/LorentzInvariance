@@ -21,7 +21,7 @@ I'm not sure what the best way to organize this document is, but for now I think
 
 %Here we start the real documentation
 \chapter{Analysis Class}
-The analysis class is designed to allow the user to perform all the high level tasks necessary for the analysis.  Each analysis instance is designed to work with one generate\_event\_times() function (since we expect to pick one and stick with it in the end).  This class inherits from Matlab's handle class, so references to it act like pointers.  To make a deep copy of an instance, use its deep\_copy() method\footnote{Note that this function no longer works.  It stopped working around the time I upgraded to Matlab 2013b from 2013a, so it may have to do with that.  It doesn't work because it tries to assign to the read-only properties of the Analysis class.}.  As of this writing, the code is still in development, so in the interest of time, it does not run on the full tracer data set.  Instead, it only uses the data in LargeSimData.met by default.  To switch use all of the tracer data, run analysis.set\_tracer\_file('all') after initializing your Analysis instance and before generating the raw\_data\_sets.
+The analysis class is designed to allow the user to perform all the high level tasks necessary for the analysis.  Each analysis instance is designed to work with one generate\_event\_times() function (since we expect to pick one and stick with it in the end).  This class inherits from Matlab's handle class, so references to it act like pointers.  As of this writing, the code is still in development, so in the interest of time, it does not run on the full tracer data set by default.  Instead, it only uses the data in LargeSimData.met by default.  To switch use all of the tracer data, run analysis.set\_tracer\_file('all') after initializing your Analysis instance and before generating the raw\_data\_sets.
 
 The examples in this section were run on the data from LargeSimData.mat, so don't be surprised if you are working with AllSimData.mat and the function take much longer to run.
 
@@ -30,7 +30,7 @@ The first step to create an Analysis instance is to create a directory in Simula
 
 Now you are ready to initialize an instance of this class.  To do this, change to the directory\footnote{The paths used internally are relative to SimulationData/code, so make sure this is your working directory; do not just add it to your path} SimulationData/code/.  Now call the constructor with the name of the generate\_event\_times.m folder as the only argument (just the name of the folder, not the path to it) as shown below.  This will automatically create the subdirectories necessary and will warn you if there are issues.
 
-Since the whole analysis process can take a long time, a lot of results are saved to the hard drive so that future instances of the Analysis class can have the results without having to recalculate them.  Therefore, if you've already run an analysis, you can get a lot of the data back just be creating another Analysis instance for the same folder and using its load functions (which are often automatically called internally).  This is demonstrated in the example below; notice how four\_month.Charman\_table is already full of data as soon as four\_month is initialized the second time.
+Since the whole analysis process can take a long time, a lot of results are saved to the hard drive so that future instances of the Analysis class can have the results without having to recalculate them.  Therefore, if you've already run an analysis, you can get a lot of the data back just be creating another Analysis instance for the same folder and using its load functions (which are automatically called internally most of the time).
 
 \begin{verbatim}
 >> four_month=Analysis('FourMonth')
@@ -39,92 +39,95 @@ four_month =
 
   Analysis with properties:
 
-    TRACER_FILE_NAME: '../TracerOutput/LargeSimData.mat'
-      GENERATOR_NAME: 'FourMonth'
-       data_set_list: {}
-       Charman_table: []
-       data_set_root: '../DataSets/FourMonth'
+       GENERATOR_NAME: 'FourMonth'
+     tracer_file_name: '../../TracerOutput/LargeSimDataSorted.mat'
+    signal_group_list: {[1x1 Signal_Group]  [1x1 Signal_Group]}
+        data_set_root: '../../DataSets/FourMonth'
+\end{verbatim}
 
+\section{Running the Analysis}
+Running the analysis is a two-step process.  First, add the desired signal\_group instances to the analysis instance by using the analysis.add\_signal\_group() method.  The method requires a function handle as an input, and you can optionally also pass it a string, which sets the signal\_group's signal\_name attribute, and/or a number, which tells it how many data sets to generate.  The function handle should be a function which takes a data\_set and modifies it to add a signal to the raw data.  Two such functions are included: signal\_null() and signal\_sine().  By default, two signal\_groups are added when you create an analysis instance, one for each of these.  You may also want to add other signal\_sine groups with different amplitudes, frequencies, or phases.  You may remove a signal\_group by using the analysis.delete\_signal\_group() method, which takes a signal\_name, or by using analysis.pop\_signal\_group() which deletes the most recently added signal\_group.
+
+Once the desired signal groups are added, the data for all the various signal groups can be generated simply by calling analysis.run().  This will create all the data\_sets, use Andy's Charman IV algorithm on them, store the results, and generate a nice histogram showing the results of the first and last signal\_groups.
+
+After running the analysis, more signal\_groups can be added or deleted, then analysis.run() can be called again to generate the data and the histogram.  If all the desired data has been generated, you may call analysis.generate\_Charman\_histograms() directly and specify which signal\_groups to plot and how many bins to use.
+
+\begin{verbatim}
+>> four_month.add_signal_group(@(data_set)signal_sine(data_set,0.01,'day',pi/8),'delayed daily sine',100)
 >> four_month.run()
+Generating data for signal group null...
+Done. Took 4.56 seconds
 
-----blah, blah, blah.  Lots of output----
- 
->> clear four_month
->> four_month=Analysis('FourMonth')
+Generating data for signal group daily sine...
+Done. Took 5.45 seconds
 
-four_month = 
+Generating data for signal group delayed daily sine...
+Done. Took 5.00 seconds
 
-  Analysis with properties:
 
-    TRACER_FILE_NAME: '../TracerOutput/LargeSimData.mat'
-      GENERATOR_NAME: 'FourMonth'
-       data_set_list: {}
-       Charman_table: [24000x6 table]
-       data_set_root: '../DataSets/FourMonth'
+Generating Charman histograms...
+Finished generating Charman histograms
+Generating Charman histograms took 0.22 seconds
+
+
+>> four_month.generate_Charman_histograms({'null','daily sine','delayed daily sine'},25)
+Generating Charman histograms...
+Done.  Took 0.22 seconds
 \end{verbatim}
 
-\section{Analysis.run()}
-This is the most high-level function in the class.  It automatically runs all of the tasks to perform the analysis and displays information showing the progress of the calculations.  Simply create an instance of the analysis class and call analysis.run() to generate all the data.  As more methods are written for the class, more steps will be added to this method.  Right now it runs Analysis.generate\_raw\_data\_sets(), Analysis.generate\_calc\_data\_sets(), Analysis.generate\_Charman\_table(), and Analysis.generate\_Charman\_histograms().
+\section{Analysis.add\_signal\_group()}
+This method creates a signal\_group and adds it to analysis.signal\_group\_list.  You must give it a function handle that accepts a data\_set as an input, which that function then modifies to add a signal.  You may create your own signal functions, or you may use the provided ones, which are discussed in Chapter \ref{chap:SignalFunctions}.
 
-\section{Analysis.generate\_raw\_data\_sets()}
-This method takes no arguments and creates pseudo data sets by pairing wait times and z-positions from the tracer output with date times from the generate\_event\_times() function in the analysis folder (Analysis.data\_set\_root).  Each data set has 386 events, of which the first 145 are assumed to be quip left data.  Raw\_Data\_Sets are produced continuously until all the points in the tracer data are used up.  Each Raw\_Data\_Set instance is attached to a Data\_Set instance\footnote{This is a good time to take a quick look at Chapter \ref{chap:data_set} to see how this data is stored}, which handles loading and unloading the Raw\_Data\_Set instances to/from the hard drive in order to minimize RAM usage.
+You may also specify a signal\_name, which you will use to identify the signal\_group when you interact with it (plot its data, delete it, etc.).  If you do not specify a name, one will be generated automatically using the Analysis.func\_to\_signal\_name() method.  Furthermore, you may specify a number of data\_sets to generate for that signal\_group.  If you do not provide a value, it will allow the Signal\_Group constructor to choose the default value (which is currently set to 100).
 
-Because generating all the Raw\_Data\_Sets can take a long time, the code is written to run in parallel.  However, to do this, the parallel processing toolbox must be installed.  If you do not have the parallel processing toolbox, the code may not run.  If this is the case, you may need to remove the lines that call the matlabpool function and change all the "parfor" loops to "for" loops.  After that, the code should run just fine.
+If you choose to use the signal\_sine function for a signal\_group (and you most likely will), you will have to provide some arguments in the function handle for the amplitude, period, and phase.  This is because the function handle given to Analysis.add\_signal\_group() must take only one argument: the data\_set.  See the examples of valid uses below.
 
-If a pool of workers is not running before this function is called, it will automatically open a pool, which will take an additional ${\sim}$10 seconds.%  Therefore this method will run more quickly if the user runs matlabpool('open') first, since the method will just use that pool.  This is particularly helpful because other methods use a pool in the same way, so a lot of time can be saved if pools are not constantly being started and stopped.
+Another point worth noting is that the code is smart enough to stop you from adding two signal\_groups with the same signal\_names, and it is smart enough to stop you from adding the same function handle twice.  If you attempt to do this, it will not create a new signal\_group and it will display a warning.
 
-\begin{verbatim}
->> matlabpool('open')
-Starting matlabpool using the 'SevenLocalWorkers' profile ... connected to 7 workers.
->> four_month.generate_raw_data_sets()
-Generating raw data sets
-Number of events from Tracer data: 386000
-Number of events per data set: 386
-Finished generating raw data sets
-Generated 1000 raw data sets
-Generating raw data sets took 5.09 seconds
-\end{verbatim}
-
-\section{Analysis.generate\_calc\_data\_sets()}
-This method takes no arguments and generates Calc\_Data\_Sets for each Data\_Set.  These Calc\_Data\_Sets are designed to hold all the values returned by datenum\_to\_cmb\_velocity(), datenum\_to\_moon\_position(), and datenum\_to\_sun\_position() for the date times in each Data\_Set.  Currently, the instances only hold the results from datenum\_to\_cmb\_velocity(), but this should change in the future.
-
-This process can be very time-consuming, so it is designed to run in parallel.  It's behavior with respect to parallelization is the same as Analysis.generate\_raw\_data\_sets(), so refer to that method's documentation for further details.
-
-This function uses the data stored in the Raw\_Data\_Sets, so make sure to run Analysis.generate\_raw\_data\_sets() before calling this method.
+To remove a signal\_group from analysis.signal\_group\_list (this will also delete all its data from the hard drive), you may call Analysis.delete\_signal\_group() with the signal\_name of the signal\_group as the only argument.  Another alternative is to use Analysis.pop\_signal\_group(), which automatically deletes the signal\_group at the end of analysis.signal\_group\_list (which is the most recently added one).
 
 \begin{verbatim}
->> four_month.generate_calc_data_sets()
-Generating calculated data sets
-Finished generating calculated data sets
-Generating calculated data sets took 11.92 seconds
-\end{verbatim}
-
-\section{Analysis.generate\_Charman\_table()}
-This method takes no arguments and generates a table that contains all the results of applying CharmanII() and CharmanIV() to the generated Raw\_Data\_Sets.  This table is stored as analysis\_instance.Charman\_table.  Because it uses the Raw\_Data\_Sets, make sure to call Analysis.generate\_raw\_data\_sets() before using this method.  This method also has the same parallelization behavior as Analysis.generate\_raw\_data\_sets(), so refer to that section for more information.
-
-\begin{verbatim}
->> four_month.generate_Charman_table()
-Generating Charman table
-Finished generating Charman table
-Generating Charman table took 5.87 seconds
->> disp(four_month.Charman_table(1:4,:))
-    data_index    data_type     algorithm     period    direction             A_1         
-    __________    __________    __________    ______    _________    _____________________
-
-    1             z-position    Charman II    day       left          0.0017035+0.0048433i
-    1             z-position    Charman II    day       right         -0.004411+0.0042822i
-    1             z-position    Charman II    day       averaged     -0.0021141+0.004493i 
-    1             z-position    Charman II    year      left           0.045676+0.029494i 
+>> four_month.add_signal_group(@(data_set)null(data_set),'null')
+Warning: The given function name null is already in self.signal_group_list 
+> In Analysis>Analysis.add_signal_group at 202 
+>> four_month.add_signal_group(@(data_set)signal_sine(data_set,0.02,'day',0));
+>> four_month.add_signal_group(@(data_set) ...
+signal_sine(data_set,0.02,'day',pi/8),'delayed sine',500);
 \end{verbatim}
 
 \section{Analysis.generate\_Charman\_histograms()}
-This method produces a few histograms that appear as docked figures.  It can be called with one argument, which will set the number of bins in the histogram, or it will default to 25 bins if no argument is provided.  The most you can reasonably have with the data from LargeSimData is ${\sim}$25, but AllSimData looks good up to at least ${\sim}$100 bins.  Currently, this function does not save the figures, but they can be saved with the savefig() command.
+This method produces a histogram that appears as a docked figure.  You may call it with no arguments, in which case it will by default plot the first (which is usually the null signal\_group) and the most recently added signal\_group with 30 bins.  Passing it a number will specify the number of bins.  Passing it a cell array with signal\_names will make it plot the data from the specified signal\_groups.
+
+The most bins you can reasonably have with the data from LargeSimData is ${\sim}$30, but AllSimData looks good up to at least ${\sim}$100 bins.  Currently, this function does not save the figures, but they can be saved with the savefig() command.
 
 \begin{verbatim}
->> four_month.generate_Charman_histograms()
-Generating Charman histograms
-Finished generating Charman histograms
-Generating Charman histograms took 0.47 seconds
+>> four_month.generate_Charman_histograms({'null','daily sine','delayed daily sine'},25)
+Generating Charman histograms...
+Done.  Took 0.31 seconds
+\end{verbatim}
+
+\section{Analysis.set\_tracer\_file}
+This method allows the user to specify which file of $bar{H}$ tracer data to use when generating event $z$-positions.  Each file is a different size, and so they take up different amounts of memory and take a different amount of time to read off of the hard drive.  It defaults to LargeSimDataSorted.mat, which has 386,000 events.  The simplest way to use this function is to call it with either 'all', 'large', or 'medium'.  Each of these arguments is automatically translated into a file name and the tracer data is loaded.
+
+\begin{verbatim}
+>> four_month.set_tracer_file('medium')
+>> four_month.set_tracer_file('large')
+>> four_month.set_tracer_file('all')
+\end{verbatim}
+
+
+
+
+
+\chapter{Signal\_Group Class}
+You should not need to interact directly with this class very often.  Instances of this class are stored in the Analysis.signal\_group\_list property.  The only time I expect that a person would want to interact with it directly would be if they wanted to change the number of data\_sets that are generated for that signal\_group.  This can be done with the Signal\_Group.set\_n\_sets() method, which takes one argument: n\_sets.  If n\_sets is 0, the signal\_group will automatically set it to its default value (right now that is 100).  Note that if n\_sets increases, the new data\_sets will not be generated immediately.  To generate additional data\_sets, call analysis.run()
+
+\begin{verbatim}
+>> four_month.signal_group_list{1}.set_n_sets(1000)
+>> four_month.run()
+Generating data for signal group null...
+Done. Took 47.21 seconds
+blah blah blah....
 \end{verbatim}
 
 
@@ -132,30 +135,69 @@ Generating Charman histograms took 0.47 seconds
 
 
 \chapter{Data\_Set Classes}
-\label{chap:data_set}
-This chapter discusses Data\_Sets, Raw\_Data\_Sets and Calc\_Data\_Sets.  The overall structure is that each instance of the Data\_Set class manages an instance of the Raw\_Data\_Set class and an instance of the Calc\_Data\_Set class.  This is done because the data in the Raw\_Data\_Set and Calc\_Data\_Set instances takes up a lot of RAM, so the Data\_Set class keeps them organized and manages them.
+\label{chap:DataSet}
+This chapter discusses Data\_Sets, Raw\_Data\_Sets and Calc\_Data\_Sets.  The overall structure is that each instance of the Data\_Set class manages an instance of the Raw\_Data\_Set class and an instance of the Calc\_Data\_Set class.  Each raw\_data\_set contains the times and $z$-positions of the events, and each calc\_data\_set contains the calculated data (for now this is just the cmb velocity).  The Data\_Set class exists because the data in the Raw\_Data\_Set and Calc\_Data\_Set instances takes up a lot of memory, so the Data\_Set class keeps them organized and saves/loads them to/from the hard drive to save RAM.
 
 \section{Data\_Set Class}
 An instance of the Data\_Set class can create a Raw\_Data\_Set, then save it to the hard drive and erase it from RAM to save space.  It can also take the information in a Raw\_Data\_Set and use it to create a Calc\_Data\_Set instance, which it can then save to the hard drive and unload from RAM.  Instances of the Calc\_Data\_Set can also load their corresponding Raw\_Data\_Set and Calc\_Data\_Set instances from the hard drive to access their data later.
 
-Initializing a Data\_Set takes a lot of arguments, so the simplest way to get your hands on one is to create an Analysis instance then use the Analysis.get\_one\_data\_set() method, which takes no arguments and returns one Data\_Set instance.  Once you have a Data\_Set, it's Raw\_Data\_Set can be created by Data\_Set.create\_raw\_data\_set(), which takes one array as an argument.  The array should have three columns: the first containing date times, the second containing wait times, and the third containing $z$-positions.  This can then be saved to the hard drive by calling Data\_Set.save\_raw\_data\_set().   Once the Raw\_Data\_Set is saved, it can be erased from memory by calling Data\_Set.unload\_raw\_data\_set() and then loaded again using Data\_Set.load\_raw\_data\_set().  Whenever the Raw\_Data\_Set is not loaded, Data\_Set.raw\_data\_set is set to be an empty array, so you can check whether or not the Raw\_Data\_Set is loaded by calling isempty(Data\_Set.raw\_data\_set).
+Initializing a Data\_Set takes a lot of arguments, so the simplest way to get your hands on one is to create an Analysis instance then use the Analysis.get\_one\_data\_set() method, which takes no arguments and returns one Data\_Set instance.  Once you have a Data\_Set, it's Raw\_Data\_Set can be created by Data\_Set.create\_raw\_data\_set(), which takes one array  and one constant as arguments.  The array should have two columns: the first containing date times and the second containing $z$-positions.  The constant specifies how many of the events are quip left (the first n\_left rows of the array are assumed to be quip left).  This can then be saved to the hard drive by calling Data\_Set.save\_raw\_data\_set().  Once the Raw\_Data\_Set is saved, it can be erased from memory by calling Data\_Set.unload\_raw\_data\_set() and then loaded again using Data\_Set.load\_raw\_data\_set().  Whenever the Raw\_Data\_Set is not loaded, Data\_Set.raw\_data\_set is set to be an empty array, so you can check whether or not the Raw\_Data\_Set is loaded by calling isempty(Data\_Set.raw\_data\_set).
 
 The methods for the Calc\_Data\_Set are very similar, just change "raw" to "calc" in the method names.  The one notable difference is that Data\_Set.create\_calc\_data\_set(), which is used to initialize the Calc\_Data\_Set, takes no arguments but can only be called after a Raw\_Data\_Set instance has been created.
 
 \section{Raw\_Data\_Set Class}
-This class stores the date times, wait times, and z-positions for one data set.  Each of these is separated into two arrays, one for quip left data and one for quip right data.  A Raw\_Data\_Set instance can be accessed from a Data\_Set instance as data\_set.raw\_data\_set.
+This class stores the date times, wait times, and $z$-positions for one data set.  Each of these is separated into two arrays, one for quip left data and one for quip right data.  A Raw\_Data\_Set instance can be accessed from a Data\_Set instance as data\_set.raw\_data\_set.
 
-Iterating over quip left vs. quip right data and over wait times vs. $z$-positions can be annoying, so to make this simpler, the class includes two methods: get\_data( data\_index, direction\_index) and get\_date\_times(direction\_index).  The get\_data method takes two indices as arguments.  If the data\_index is 1, it returns $z$-positions, if the data\_index is 2, it returns wait times, and it errors on any other value.  If the direction\_index is 1 it returns quip left data, if it is 2 it returns quip right data, and it errors on any other value.  The get\_date\_times() method only takes the direction\_index since it doesn't have to choose between $z$-positions or wait times.
+Iterating over quip left vs. quip right data can be annoying, so to make this simpler, the class includes two methods: get\_data(direction\_index) and get\_date\_times(direction\_index).  For each of these, a direction\_index of 1 returns quip left data and direction\_index 2 returns quip right data.
 
 \section{Calc\_Data\_Set Class}
-This class stores the data that can be calculated for each event from the data in the Raw\_Data\_Set instance.  This means it stores CMB velocities, moon positions, and sun positions, each stored in separate arrays for the quip left and quip right data.  For easier access, this information can be retrieved from methods that take direction\_index as an argument (again 1 for left or 2 for right).  These methods are get\_velocity(), get\_moon\_position(), and get\_sun\_position()\footnote{At the moment only get\_velocity() is implemented.}.
+This class stores the data that can be calculated for each event from the data in the Raw\_Data\_Set instance.  It was designed to store CMB velocities, moon positions, and sun positions, each in separate arrays for the quip left and quip right data.  Currently only CMB velocities are stored.  For easier access, this information can be retrieved from methods that take direction\_index as an argument (again 1 for left or 2 for right).  These methods are get\_velocity(), get\_moon\_position(), and get\_sun\_position(), although only get\_velocity() is implemented at the moment.
 
 
 
 
 
-\chapter{Matlab Functions in SimulationData/Code/}
-The SimulationData/ directory contains a mixture of data files separated into different folders.  Because a lot of simulation data was generated\footnote{${\sim}$400MB of time and position data was output by the simulations, which in turn is saved in many different ways, thereby increasing disk usage significantly.}, only small portions of each form of data are included in the Dropbox.  If you need larger portions of the data, contact Zak at uphgreat@gmail.com.
+\chapter{Position\_Generator Class}
+Need to write this.
+
+
+
+
+
+\chapter{Random\_Generator Class}
+Need to write this.
+
+
+
+
+
+\chapter{Functions in SimulationData/Code/SignalFunctions}
+\label{chap:SignalFunctions}
+These functions are used to add signals to the raw data in data\_set instances.  Their names begin with "signal\_" and they can be used to create Signal\_Group instances in an Analysis instance.  Each takes a data\_set instance as an argument and does not return anything (the data\_sets are modified in place).  If you code your own signal function, I recommend basing it off of signal\_sine, which is described below.
+
+\section{signal\_null.m}
+This function does not touch the data in the data\_set instance.  It is by default the first signal\_group in an Analysis instance's signal\_group\_list under the signal\_name 'null'.  A signal\_group that uses this signal function can be added to an Analysis instance as demonstrated in the following example.  Note that the signal\_group will not be created if a signal\_group with the given name or function handle is already in analysis.signal\_group\_list, and the 'null' signal\_group is already included by default.
+
+\begin{verbatim}
+>> four_month.add_signal_group(@(data_set)signal_null(data_set),'null')
+Warning: The given function name null is already in self.signal_group_list 
+> In Analysis>Analysis.add_signal_group at 202 
+\end{verbatim}
+
+\section{signal\_sine.m}
+This function takes four arguments.  The first is the data\_set, and the rest are the amplitude (in meters), period (in sidereal days), and phase (in radians).  However, the signal function of a Signal\_Group instance must take only one argument: the data\_set.  Therefore, to add a signal\_group to an Analysis instance with this signal function, the given function handle must supply the rest of the arguments, as demonstrated in the example below.
+
+\begin{verbatim}
+>> four_month.add_signal_group(@(data_set) ...
+signal_sine(data_set,0.05,'day',pi/8),'delayed sine');
+\end{verbatim}
+
+
+
+
+
+\chapter{Functions in SimulationData/Code/OtherFunctions/}
+The SimulationData/ directory contains a mixture of data files separated into different folders.  Because a lot of simulation data was generated\footnote{${\sim}$400MB of time and position data was output by the simulations, which in turn is saved in many different ways, thereby increasing disk usage significantly.}, only small portions of each form of data are included in the Dropbox and Git repository.  If you need larger portions of the data, contact Zak at uphgreat@gmail.com.
 
 \section{load/save\_mat.m}
 These functions allow arbitrary Matlab objects to be saved and loaded.  The function save\_mat takes a file\_name (which can include a path) and an object and saves the object with the given file\_name.  The load\_mat function simply takes a file\_name as an argument and returns the saved object.
@@ -182,41 +224,88 @@ some_array =
 \end{verbatim}
 
 \section{filter\_table.m}
-This function takes a table and unlimited filter pairs as arguments and returns a table in which some rows have been filtered out.  The easiest way to understand it's behavior is through example.  If you would like to only look at the rows in Charman\_table where the algorithm is Charman II, the period is one day, and the quip is to the left, call the function as shown below.  This function is used to take a large data table and pick out only the rows that you want.
+This function takes a table and unlimited filter pairs as arguments and returns a table in which some rows have been filtered out.  The easiest way to understand it's behavior is through example.  If you would like to only look at the rows in Charman\_table where the quip is to the left and the data\_set\_index is 1, call the function as shown below.  This function is used to take a large data table and pick out only the rows that you want.
 
 \begin{verbatim}
->> Charman_table=four_month.Charman_table;
+>> Charman_table=four_month.signal_group_list{1}.Charman_table;
 >> Charman_table(1:4,:)
 
 ans = 
 
-    data_index    data_type     algorithm     period    direction             A_1          
-    __________    __________    __________    ______    _________    ______________________
+    data_set_index    direction            A_1             abs_A_1 
+    ______________    _________    ___________________    _________
 
-    1             z-position    Charman II    day       left         -0.0015231-0.0042594i 
-    1             z-position    Charman II    day       right         0.0022921+0.00029394i
-    1             z-position    Charman II    day       averaged     0.00085891-0.0014165i 
-    1             z-position    Charman II    year      left           0.034328+0.010111i  
+    1                 left              NaN+0i                  NaN
+    1                 right        0.002504-0.0028301i    0.0037788
+    1                 averaged     0.002504-0.0028301i    0.0037788
+    2                 left              NaN+0i                  NaN
 
->> filtered_table=filter_table(Charman_table,'algorithm','Charman II', ...
-    'period','day','direction','left');
->> filtered_table(1:4,:)
+>> filtered_table=filter_table(Charman_table,'direction','right','data_set_index',5)
 
-ans = 
+filtered_table = 
 
-    data_index    data_type     algorithm     period    direction              A_1          
-    __________    __________    __________    ______    _________    _______________________
+    data_set_index    direction            A_1              abs_A_1 
+    ______________    _________    ____________________    _________
 
-    1             z-position    Charman II    day       left          -0.0015231-0.0042594i 
-    1             wait_time     Charman II    day       left         -3.1669e-05-0.00038327i
-    2             z-position    Charman II    day       left          -0.0039187+0.0040608i 
-    2             wait_time     Charman II    day       left         -0.00032895+9.1809e-05i
+    5                 right        0.0010866+0.0018011i    0.0021035
+\end{verbatim}
+
+
+
+
+
+\chapter{Functions in SimulationData/Code/ParameterFunctions}
+These functions take Data\_Set instances and a direction as an argument and return an array giving the value of a parameter of interest at the event times of either the quip left or quip right data points.  The argument direction is either 1 for left, or 2 for right; any other value causes an error.  The names of each of these functions begins with "param\_" to indicate their purpose.  The first function of this type is param\_speed() which returns the CMB speed of the Earth.  Other similar function will be added in the future, such as the boost $\gamma$, angle between the trap and its CMB velocity, or parameters regarding the moon or sun position.
+
+
+
+
+
+
+
+\chapter{Functions in SimulationData/Code/Mex/}
+\label{chap:Mex}
+This chapter covers the Mex functions in Simulation data that are used to interface with the Aephem library.  It documents both how to compile the functions and how they are used by their corresponding Matlab wrappers.
+
+\section{Set-Up}
+After some code edits, the set up process has been simplified.  If your machine is able to compile Mex files, all that needs to be done is to compile Aephem and put it in the correct directory.  The code should be stored with the same directory structure as that of the Dropbox folder.  After downloading the tarball for Aephem (I use version 2.0.0-Canopus, which is the latest version as of this writing), the tarball should be extracted into the aephem-2.0.0 directory.  The directory name does not have any colons or spaces in it because this seems to cause trouble for the Mex compiler.  Run 'make' to build the code.  If you've already built the code, you can just move the directory containing the code to the appropriate place (in the same directory as SimulationData/) and rename it to "aephem-2.0.0".  Or if you prefer not to have two copies of the software floating around, you might be able to get away with creating symbolic links.
+
+If you have not used Mex on your machine before, it may need to be set up.  I ran 'mex -setup' before I tried compiling anything, but this may not have been necessary.  If you cannot build, refer to Matlab's documention for further instructions on getting Mex working.
+
+\section{moon/sun\_position.c}
+These functions are intended to be compiled with Mex.  After being successfully compiled, they take an array of Unix times and return three arrays giving the positions of the moon or sun: altitude angle (in degrees), azimuth angle (in degrees), and distance (in AU) in that order.
+
+Because the input times are in Unix time, and because the libaephem library must be loaded before this function can run, wrapper functions datenum\_to\_moon\_position() and datenum\_to\_sun\_position are included in the same directory.  The wrapper functions load the libaephem library (if not already loaded), convert times from the datenum() format in Geneva time to Unix time, then call moon\_position() or sun\_position() and return the results.  It is recommended that you use datenum\_to\_moon\_position() and datenum\_to\_sun\_position() instead of using moon\_position() and sun\_position directly.
+
+Before moon/sun\_position() or datenum\_to\_moon/sun\_position() can be called, moon\_position.c and sun\_position.c must be compiled.  The commands to compile them are included in the comments at the top of each function's source code and the commands are included below for reference.  The commands can be run in Matlab and may also work in Bash.  The scripts test\_moon and test\_sun will run these commands, so if you run those scripts you will not need run the Mex commands.
+
+\begin{verbatim}
+>> mex -O CFLAGS="\$CFLAGS -std=c99" ...
+-I../../../aephem-2.0.0/src/ moon_position.c ...
+../../../aephem-2.0.0/src/.libs/libaephem.so
+
+>> mex -O CFLAGS="\$CFLAGS -std=c99" ...
+-I../../../aephem-2.0.0/src/ sun_position.c ...
+../../../aephem-2.0.0/src/.libs/libaephem.so
+\end{verbatim}
+
+\section{cmb\_velocity.c}
+This function is intended to be compiled with Mex.  After being successfully built, it takes an array of Unix times and returns three arrays, one for each velocity component.  The velocities are given in m/s in J2000 cartesian coordinates.
+
+Because the input times are in Unix time, and because the libaephem library must be loaded before this function can run, a wrapper function datenum\_to\_cmb\_velocity() is included in the same directory.  The wrapper function loads the libaephem library (if not already loaded), converts time from the datenum() format in Geneva time (it assumes Daylight Savings time effects have already been subtracted out) to Unix time, then calls cmb\_velocity(), and finally return the results.  It is recommended that you use datenum\_to\_cmb\_velocity() instead of using cmb\_velcoty() directly.
+
+Before cmb\_velocity() or datenum\_to\_cmb\_velocity() can be called, cmb\_velocity.c must be compiled.  The command to compile it is included in the comment at the top of its source code and just below here for reference.  The commands can be run in Matlab and may also work in Bash.  The script test\_cmb will run that commands, so if you run the test script you will not need run the Mex commands.
+
+\begin{verbatim}
+>> mex -O CFLAGS="\$CFLAGS -std=c99" ...
+-I../../../aephem-2.0.0/src/ cmb_velocity.c ...
+../../../aephem-2.0.0/src/.libs/libaephem.so
 \end{verbatim}
 
 \section{datenum\_to\_sun\_position.m}
 This function takes times in datenum() format (given in Geneva time with Daylight Savings effects already removed) and returns the corresponding positions of the sun.  It returns three arrays: altitude angle (in degrees), azimuth angle (in degrees), and distance (in AU) in that order.  These values are calculated by the Mex function sun\_position.c.  
 
-Because datenum\_to\_sun\_position() uses a Mex Function, it requires some set up before it can be used, which is discussed in Chapter \ref{chap:mex_functions}.  Furthermore, because the Mex function uses Aephem, the library libaephem.so must be loaded.  This generates several warnings, but these are inconsequential and so they are suppressed.  If you would like to see these warnings, comment out the lines in the function that disable the warnings (these lines are easy to identify).  Because the library is loaded only once per Matlab session, these warnings will only appear the first time you call a function that loads it in each Matlab session.
+Because datenum\_to\_sun\_position() uses a Mex Function, it requires some set up before it can be used, which is discussed in Chapter \ref{chap:Mex}.  Furthermore, because the Mex function uses Aephem, the library libaephem.so must be loaded.  This generates several warnings, but these are inconsequential and so they are suppressed.  If you would like to see these warnings, comment out the lines in the function that disable the warnings (these lines are easy to identify).  Because the library is loaded only once per Matlab session, these warnings will only appear the first time you call a function that loads it in each Matlab session.
 
 In order to facilitate testing of this function, a script with the name test\_sun.m is included.  This script will get four different times from generate\_event\_times(), compile the mex file from sun\_position.c, then call datenum\_to\_sun\_position() in order to test it.
 
@@ -295,7 +384,7 @@ distances =
 \section{datenum\_to\_moon\_position.m}
 This function takes times in datenum() format (given in Geneva time with Daylight Savings effects already removed) and returns the corresponding positions of the moon.  It returns three arrays: altitude angle (in degrees), azimuth angle (in degrees), and distance (in AU) in that order.  These values are calculated by the Mex function moon\_position.c.  
 
-Because datenum\_to\_moon\_position() uses a Mex Function, it requires some set up before it can be used, which is discussed in Chapter \ref{chap:mex_functions}.  Furthermore, because the Mex function uses Aephem, the library libaephem.so must be loaded.  This generates several warnings, but these are inconsequential and so they are suppressed.  If you would like to see these warnings, comment out the lines in the function that disable the warnings (these lines are easy to identify).  Because the library is loaded only once per Matlab session, these warnings will only appear the first time you call a function that loads it in each Matlab session.
+Because datenum\_to\_moon\_position() uses a Mex Function, it requires some set up before it can be used, which is discussed in Chapter \ref{chap:Mex}.  Furthermore, because the Mex function uses Aephem, the library libaephem.so must be loaded.  This generates several warnings, but these are inconsequential and so they are suppressed.  If you would like to see these warnings, comment out the lines in the function that disable the warnings (these lines are easy to identify).  Because the library is loaded only once per Matlab session, these warnings will only appear the first time you call a function that loads it in each Matlab session.
 
 In order to facilitate testing of this function, a script with the name test\_moon.m is included.  This script will get four different times from generate\_event\_times(), compile the mex file from moon\_position.c, then call datenum\_to\_moon\_position() in order to test it.
 
@@ -373,7 +462,7 @@ distances =
 \section{datenum\_to\_cmb\_velocity.m}
 This functions takes times in datenum() format (given in Geneva time with Daylight Savings effects already removed) and returns the velocity of the Earth in J2000 cartesian coordinates.  It returns three arrays, one for each component of the velocity, all of which are given in m/s.  These values are calculated by the Mex function cmb\_velocity.c.  
 
-Because datenum\_to\_cmb\_velocity() uses a Mex Function, it requires some set up before it can be used, which is discussed in Chapter \ref{chap:mex_functions}.  Furthermore, because the Mex function uses Aephem, the library libaephem.so must be loaded.  This generates several warnings, but these are inconsequential and so they are suppressed.  If you would like to see these warnings, comment out the lines in the function that disable the warnings (these lines are easy to identify).  Because the library is loaded only once per Matlab session, these warnings will only appear the first time you call a function that loads it in each Matlab session.
+Because datenum\_to\_cmb\_velocity() uses a Mex Function, it requires some set up before it can be used, which is discussed in Chapter \ref{chap:Mex}.  Furthermore, because the Mex function uses Aephem, the library libaephem.so must be loaded.  This generates several warnings, but these are inconsequential and so they are suppressed.  If you would like to see these warnings, comment out the lines in the function that disable the warnings (these lines are easy to identify).  Because the library is loaded only once per Matlab session, these warnings will only appear the first time you call a function that loads it in each Matlab session.
 
 In order to facilitate testing of this function, a script with the name test\_cmb.m is included.  This script will get four different times from generate\_event\_times(), compile the mex file from cmb\_velocity.c, then call datenum\_to\_cmb\_velocity() in order to test it.  It also calculates the magnitudes of the resulting velocities.
 
@@ -463,60 +552,12 @@ Elapsed time is 0.000386 seconds.
   -3.476737793988580
 \end{verbatim}
 
-\section{Parameter Functions}
-These functions take Data\_Set instances and a direction as an argument and return an array giving the value of a parameter of interest at the event times of either the quip left or quip right data points.  The argument direction is either 1 for left, or 2 for right; any other value causes an error.  The names of each of these functions begins with "param\_" to indicate their purpose.  The first function of this type is param\_speed() which returns the CMB speed of the Earth.  Other similar function will be added in the future, such as the boost $\gamma$, or parameters regarding the moon or sun position.
-
-
-
-
-
-
-
-\chapter{Mex Functions in SimulationData/Code/}
-\label{chap:mex_functions}
-This chapter covers the Mex functions in Simulation data that are used to interface with the Aephem library.  It documents both how to compile the functions and how they are used by their corresponding Matlab wrappers.
-
-\section{Set-Up}
-After some code edits, the set up process has been simplified.  If your machine is able to compile Mex files, all that needs to be done is to compile Aephem and put it in the correct directory.  The code should be stored with the same directory structure as that of the Dropbox folder.  After downloading the tarball for Aephem (I use version 2.0.0-Canopus, which is the latest version as of this writing), the tarball should be extracted into the aephem-2.0.0 directory.  The directory name does not have any colons or spaces in it because this seems to cause trouble for the Mex compiler.  Run 'make' to build the code.  If you've already built the code, you can just move the directory containing the code to the appropriate place (in the same directory as SimulationData/) and rename it to "aephem-2.0.0".  Or if you prefer not to have two copies of the software floating around, you might be able to get away with creating symbolic links.
-
-If you have not used Mex on your machine before, it may need to be set up.  I ran 'mex -setup' before I tried compiling anything, but this may not have been necessary.  If you cannot build, refer to Matlab's documention for further instructions on getting Mex working.
-
-\section{moon/sun\_position.c}
-These functions are intended to be compiled with Mex.  After being successfully compiled, they take an array of Unix times and return three arrays giving the positions of the moon or sun: altitude angle (in degrees), azimuth angle (in degrees), and distance (in AU) in that order.
-
-Because the input times are in Unix time, and because the libaephem library must be loaded before this function can run, wrapper functions datenum\_to\_moon\_position() and datenum\_to\_sun\_position are included in the same directory.  The wrapper functions load the libaephem library (if not already loaded), convert times from the datenum() format in Geneva time to Unix time, then call moon\_position() or sun\_position() and return the results.  It is recommended that you use datenum\_to\_moon\_position() and datenum\_to\_sun\_position() instead of using moon\_position() and sun\_position directly.
-
-Before moon/sun\_position() or datenum\_to\_moon/sun\_position() can be called, moon\_position.c and sun\_position.c must be compiled.  The commands to compile them are included in the comments at the top of each function's source code and the commands are included below for reference.  The commands can be run in Matlab and may also work in Bash.  The scripts test\_moon and test\_sun will run these commands, so if you run those scripts you will not need run the Mex commands.
-
-\begin{verbatim}
->> mex -O CFLAGS="\$CFLAGS -std=c99" ...
--I../../aephem-2.0.0/src/ moon_position.c ...
-../../aephem-2.0.0/src/.libs/libaephem.so
-
->> mex -O CFLAGS="\$CFLAGS -std=c99" ...
--I../../aephem-2.0.0/src/ sun_position.c ...
-../../aephem-2.0.0/src/.libs/libaephem.so
-\end{verbatim}
-
-\section{cmb\_velocity.c}
-This function is intended to be compiled with Mex.  After being successfully built, it takes an array of Unix times and returns three arrays, one for each velocity component.  The velocities are given in m/s in J2000 cartesian coordinates.
-
-Because the input times are in Unix time, and because the libaephem library must be loaded before this function can run, a wrapper function datenum\_to\_cmb\_velocity() is included in the same directory.  The wrapper function loads the libaephem library (if not already loaded), converts time from the datenum() format in Geneva time (it assumes Daylight Savings time effects have already been subtracted out) to Unix time, then calls cmb\_velocity(), and finally return the results.  It is recommended that you use datenum\_to\_cmb\_velocity() instead of using cmb\_velcoty() directly.
-
-Before cmb\_velocity() or datenum\_to\_cmb\_velocity() can be called, cmb\_velocity.c must be compiled.  The command to compile it is included in the comment at the top of its source code and just below here for reference.  The commands can be run in Matlab and may also work in Bash.  The script test\_cmb will run that commands, so if you run the test script you will not need run the Mex commands.
-
-\begin{verbatim}
->> mex -O CFLAGS="\$CFLAGS -std=c99" ...
--I../../aephem-2.0.0/src/ cmb_velocity.c ...
-../../aephem-2.0.0/src/.libs/libaephem.so
-\end{verbatim}
-
 
 
 
 
 \chapter{Data Directories in SimulationData/DataSets/}
-\label{chap:data_directories}
+\label{chap:DataDirectories}
 As of the moment that this is being written, we have not agreed upon a way to choose the times of the events for the simulated data sets.  Therefore I plan on creating multiple groups of data sets, each with a different version of generate\_event\_times().  This chapter includes descriptions of these different groups of data sets.
 
 \section{FourMonth}
@@ -526,20 +567,20 @@ This data was generated with random times.  The distribution function was chosen
 
 
 
-\chapter{CharmanUltra/}
+\chapter{Functions in SimulationData/CorrelationFunctions/}
 This folder contains the functions used to implement Andy Charman's algorithms.  His descriptions/derivations of these algorithms are described in Charman\_sinusoid\_estimator.pdf, which is included in the folder with this document.
 
-There is an important distinction between a Matlab day and a sidereal day.  A Matlab day is defined as $60*60*24=86,400$ seconds while a sidereal day is how long the Earth takes to revolve once with respect to the distant stars, which is 86,164.09 seconds.  To make the code more straight forward, all the data is stored in terms of Matlab days (because this is what datenum() uses).  However, we are more interested in sidereal days when it comes to periodic signals, so some arguments are given in sidereal days and converted inside the function to Matlab days for calculations.
+There is an important distinction between a Matlab day and a sidereal day.  A Matlab day is defined as $60*60*24=86,400$ seconds while a sidereal day is how long the Earth takes to revolve once with respect to the distant stars, which is 86,164.09 seconds.  To make the code more straight forward, all the data is stored in terms of Matlab days (because this is what datenum() uses).  However, we are more interested in sidereal days when it comes to periodic signals, so the period arguments are given in sidereal days for convenience and then they are converted inside the function to Matlab days for calculations.
 
 \section{CharmanII.m}
 This function returns the complex Fourier Coefficient $A_1$, given three arguments: date\_times, data, and period.  The date\_times argument should be an array giving the date times of the events.  The data argument should be an array of the same dimensions as date\_times giving either the $z$-positions or wait times of the annihilations.  The period should be 'day', 'month', 'year', or a time in units of sidereal days.
 
-This function uses the method described in Section II of Charman\_sinusoid\_estimator.pdf.  It  is best suited for period='year' because it is not expected to be as powerful as CharmanIV.m for daily or monthly signals, but does not need the data to be well-distributed across the time period.
+This function uses the method described in Section II of Charman\_sinusoid\_estimator.pdf.  It  is best suited for period='year' because it is not expected to be as powerful as CharmanIV.m for daily or monthly signals, but does not need the data to be well-distributed across the time period.  If the input data array is empty, this function returns NaN.
 
 \section{CharmanIV.m}
 This function returns the complex Fourier Coefficient $A_1$, given three arguments: date\_times, data, and period.  The date\_times argument should be an array giving the date times of the events.  The data argument should be an array of the same dimensions as date\_times giving either the $z$-positions or wait times of the annihilations.  The period should be 'day', 'month', 'year', or a time in units of sidereal days.
 
-This function uses the method described in Section IV of Charman\_sinusoid\_estimator.pdf.  It  is best suited for period='day' because it requires the data to be well spread throughout the period and assumes a fixed frequency.
+This function uses the method described in Section IV of Charman\_sinusoid\_estimator.pdf.  It  is best suited for period='day' because it requires the data to be well spread throughout the period and assumes a fixed frequency.  If the input data array is empty, this function returns NaN.
 
 
 
@@ -551,9 +592,9 @@ This chapter is intended to be a place for information that doesn't quite fit an
 \section{SimulationData/TracerOutput/}
 This folder contains the end results of the $\bar{H}$ tracer simulations and this data is used to generate all the simulated data sets.  The data is stored in two different ways: .mat and .ellip files.  The .ellip files are text files and the .mat files are Matlab binary files that are smaller and can be read/written faster than the .ellip files.  Therefore, only use the .ellip files for visual inspection with a text editor.
 
-Each .ellip file in this folder has two columns.  The first  column is the wait time it took (in seconds) for the $\bar{H}$ to hit the trap walls after the quench.  Note that this is \textit{not} the wall time of the event.  The second column is the $z$-position (in meters) of the annihilation with respect to the trap center.  This set of data includes effects from detector smearing and cuts\footnote{Cuts are criteria used to distinguish $\bar{H}$ annihilations from other events, such as those due to cosmic rays.}.  This data is read in automatically by instances of the Analysis class when generating Raw\_Data\_Set instances.
+Each .ellip file in this folder has two columns.  The first  column is the wait time it took (in seconds) for the $\bar{H}$ to hit the trap walls after the quench.  Note that this is \textit{not} the wall time of the event.  The second column is the $z$-position (in meters) of the annihilation with respect to the trap center.  This set of data includes effects from detector smearing and cuts\footnote{Cuts are criteria used to distinguish $\bar{H}$ annihilations from other events, such as those due to cosmic rays.}.  This data is read in automatically by instances of the Position\_Generator class when generating Raw\_Data\_Set instances.
 
-Currently three tracer data sets are included in this directory: MediumSimData, LargeSimData, and AllSimData.  MediumSimData and LargeSimData contain a portion of the full set of simulation output AllSimData, which is ${\sim}$400MB so it is not included in the Dropbox folder.
+Currently three tracer data sets are included in this directory: MediumSimData, LargeSimData, and AllSimData.  MediumSimData and LargeSimData contain a portion of the full set of simulation output AllSimData, which is ${\sim}$400MB so it is not included in the Dropbox folder.  Each of these has two versions: one in which the rows are randomly oriented (whatever order that they came out of the tracer simulations) and one in which they are sorted by $z$-position.  The sorted versions are used in case a future version of the Position\_Generator class does some interpolation between these event positions.
 
 
 \end{document}
