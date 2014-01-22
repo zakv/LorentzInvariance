@@ -49,6 +49,7 @@ classdef Signal_Group < handle
             
             %Check if already generated; return if necessary
             if self.is_generated()
+                fprintf('Already fully generated\n');
                 return
             end
             
