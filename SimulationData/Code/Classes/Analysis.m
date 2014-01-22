@@ -32,9 +32,10 @@ classdef Analysis < handle
         %Properties of instances of the Analysis Class that should not be
         %hidden
         GENERATOR_NAME %Name for generate_event_times() function
-        tracer_file_name=fullfile(Analysis.SIMULATION_DATA, ...
-            'TracerOutput', ...
-            'LargeSimData.mat'); %Tracer output file
+        tracer_file_name%= ...
+%             fullfile(Analysis.SIMULATION_DATA, ...
+%             'TracerOutput', ...
+%             'LargeSimData.mat'); %Tracer output file
         signal_group_list %List of the instances signal groups
         n_workers %Number of workers in parpool
     end
@@ -54,6 +55,7 @@ classdef Analysis < handle
         signal_group_file_name %File name to save the signal_group_list
         position_generator_seeder %A prng based on a different (Lagged Fibnoacci)
         position_generator_list %List of the position generators
+        tracer_file_name_file %File used to save the value of self.tracer_file_name
     end
     
     methods
@@ -69,12 +71,19 @@ classdef Analysis < handle
             
             %Properties that vary between instances
             self.set_GENERATOR_NAME(GENERATOR_NAME);
-            self.set_tracer_file('large');
             self.signal_group_list={};
             seed=int32((10000*now-floor(now*10000))*10^9);
             self.position_generator_seeder= ...
                 RandStream('multFibonacci','Seed',seed);
             self.position_generator_list={};
+            
+            %Load tracer_file_name if there is a saved copy, or else set it
+            %to the default
+            if self.tracer_file_name_file_exists()
+                self.load_tracer_file_name()
+            else
+                self.set_tracer_file('large');
+            end
             
             %Load signal_group_list list if there is a saved copy
             if self.signal_group_file_exists()
@@ -115,6 +124,9 @@ classdef Analysis < handle
                 position_generator=self.position_generator_list{j};
                 position_generator.set_tracer_file(self.tracer_file_name);
             end
+            
+            %Save the tracer_file_name
+            self.save_tracer_file_name();
         end
         
         function [] = add_signal_group(self,signal_func,varargin)
@@ -503,6 +515,10 @@ classdef Analysis < handle
                 msgString=['The directory ',self.data_set_root,' does not exist'];
                 error(msgIdent,msgString);
             end
+            
+            %Set some file names
+            file_name='tracer_name.mat';
+            self.tracer_file_name_file=fullfile(self.data_set_root,file_name);
             file_name='signal_group_list.mat';
             self.signal_group_file_name=fullfile(self.data_set_root,file_name);
         end
@@ -564,7 +580,7 @@ classdef Analysis < handle
         end
         
         function [] = save_signal_group_list(self)
-            %Save self.signal_group_list to the self.signal_data_set_root
+            %Save self.signal_group_list to the self.data_set_root
             %directory
             
             %Erase analysis parent so the analysis instance does not get
@@ -588,7 +604,7 @@ classdef Analysis < handle
         
         function [] = load_signal_group_list(self)
             %Loads the signal_group_list from the hard drive
-            if exist(self.signal_group_file_name,'file')==2
+            if self.signal_group_file_exists()
                 self.signal_group_list=load_mat(self.signal_group_file_name);
                 %Set this analysis instance as the parent
                 jMax=length(self.signal_group_list);
@@ -606,6 +622,26 @@ classdef Analysis < handle
         function bool = signal_group_file_exists(self)
             %Checks if there is a saved signal_group_list file
             if exist(self.signal_group_file_name,'file')==2
+                bool=true;
+            else
+                bool=false;
+            end
+        end
+        
+        function [] = save_tracer_file_name(self)
+            %Save self.tracer_file_name to the self.data_set_root directory
+            save_mat(self.tracer_file_name_file,self.tracer_file_name);
+        end
+        
+        function [] = load_tracer_file_name(self)
+            %Loads the tracer_file_name from the harddrive
+            name_string=load_mat(self.tracer_file_name_file);
+            self.set_tracer_file(name_string);
+        end
+        
+        function bool = tracer_file_name_file_exists(self)
+            %Checks if there is a saved signal_group_list file
+            if exist(self.tracer_file_name_file,'file')==2
                 bool=true;
             else
                 bool=false;
