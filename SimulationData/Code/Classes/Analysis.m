@@ -359,8 +359,10 @@ classdef Analysis < handle
                     signal_group=signal_group_list{1}; %#ok<PROP>
                     S_array=signal_group.extract_S_array();
                     bin_height=zeros(n_bins,jMax_signal_group);
+                    bin_uncertainty=zeros(n_bins,jMax_signal_group);
                     [bin_count,bin_center]=hist(S_array,n_bins);
                     bin_height(:,1)=bin_count/sum(bin_count);
+                    bin_uncertainty(:,1)=sqrt(bin_count)/sum(bin_count);
                     
                     %Do the rest of the histograms given the bin centers
                     %from above.
@@ -369,6 +371,7 @@ classdef Analysis < handle
                         S_array=signal_group.extract_S_array();
                         [bin_count,bin_center]=hist(S_array,n_bins);
                         bin_height(:,j_signal_group)=bin_count/sum(bin_count);
+                        bin_uncertainty(:,j_signal_group)=sqrt(bin_count)/sum(bin_count);
                     end
                     
                     %Get names for legend
@@ -378,8 +381,8 @@ classdef Analysis < handle
                         legend_names{j_signal_group}=signal_group.signal_name;
                     end
                     figure('WindowStyle','docked');
-                    %                     bar(bin_center,bin_height,'hist');
-                    plot(bin_center,bin_height,'-s');
+                    errorbar([bin_center',bin_center'],bin_height,bin_uncertainty, ...
+                        '-s','MarkerSize',4);
                     title([algorithm_string,' - ',period_string,' - ',data_name]);
                     legend(legend_names);
                     if strcmp(data_string,'z-position')
