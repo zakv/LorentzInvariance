@@ -36,6 +36,7 @@ classdef Analysis < handle
             'TracerOutput', ...
             'LargeSimData.mat'); %Tracer output file
         signal_group_list %List of the instances signal groups
+        n_workers %Number of workers in parpool
     end
     
     properties (SetAccess=private)
@@ -74,7 +75,6 @@ classdef Analysis < handle
             self.position_generator_seeder= ...
                 RandStream('multFibonacci','Seed',seed);
             self.position_generator_list={};
-            self.add_position_generator();
             
             %Load signal_group_list list if there is a saved copy
             if self.signal_group_file_exists()
@@ -85,6 +85,13 @@ classdef Analysis < handle
                 self.add_signal_group(@(data_set) ...
                     signal_sine(data_set,0.01,'day',0),'daily sine');
             end
+            
+            %Set n_workers if a parpool exists
+            if matlabpool('size')~=0
+                pool_instance=gcp();
+                self.n_workers=pool_instance.NumWorkers;
+            end
+            
         end
         
         function [] = set_tracer_file(self,tracer_name)
@@ -235,9 +242,10 @@ classdef Analysis < handle
         
         function [] = run(self)
             %Automatically performs the analysis
-            %             if matlabpool('size')==0
-            %                 matlabpool('open') %use parpool instead
-            %             end
+            
+            %Open a parpool if necessary, and add each worker's
+            %position_generator
+            self.start_parpool();
             
             %Generate the signal data for all the signal groups
             self.generate_signal_data();
@@ -501,10 +509,45 @@ classdef Analysis < handle
         
         function [] = add_position_generator(self)
             %Adds a new position generator.
-            next_seed=rand(self.position_generator_seeder);
+            
+            %Get index of the new generator in self.position_generator_list
+            generator_index=length(self.position_generator_list)+1;
+            
+            %Use generator_index and a random number to seed the
+            %position_generator
+            next_seed=zeros(1,2);
+            next_seed(1)=generator_index;
+            next_seed(2)=rand(self.position_generator_seeder);
             position_generator= ...
                 Position_Generator(self.tracer_file_name,next_seed);
-            self.position_generator_list{end+1}=position_generator;
+            self.position_generator_list{generator_index}=position_generator;
+        end
+        
+        function [] = start_parpool(self)
+            %Starts up the parallel processing pool and creates
+            %Position_Generator instances for the workers.
+            if matlabpool('size')==0
+                pool_instance=parpool();
+            else
+                pool_instance=gcp(); %get already running pool
+            end
+            self.n_workers=pool_instance.NumWorkers;
+            self.update_position_generator_list();
+        end
+        
+        function [] = update_position_generator_list(self)
+            %Adds or deletes position generators for the parpool workers to
+            %set it to self.position_generator_list
+            n_generators=length(self.position_generator_list);
+            if self.n_workers>n_generators %Need more generators
+                jMax=self.n_workers-n_generators;
+                for j=1:jMax
+                    self.add_position_generator()
+                end
+            elseif self.n_workers<n_generators %More generators than necessary
+                self.position_generator_list= ...
+                    self.position_generator_list{1:self.n_workers};
+            end
         end
         
         function [] = make_clean(self)
