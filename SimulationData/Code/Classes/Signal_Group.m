@@ -53,49 +53,60 @@ classdef Signal_Group < handle
                 return
             end
             
-            self.data_set_list=cell(1,self.n_sets);
-            position_generator=self.analysis_parent.position_generator_list{1};
-            Charman_chunks=cell(1,self.n_sets);
-            for j_data_set_index=1:self.n_sets
-                %Initialize data set
-                data_set=Data_Set(self,j_data_set_index);
-                
-                %Create raw data set and calc data set
-                %get date times (and put quip left first)
-                [date_times,n_left]=generate_event_times();
-                n_events=length(date_times);
-                %get z-positions
-                z_positions=position_generator.generate_z_positions(n_events);
-                data_array=[date_times,z_positions];
-                data_set.create_raw_data_set(data_array,n_left);
-                data_set.create_calc_data_set();
-                
-                %add signal
-                self.signal_func(data_set);
-                
-                %Create row for Charman table
-                data_set_index=j_data_set_index*ones(3,1);
-                direction=categorical({'left';'right';'averaged'});
-                A_1=zeros(3,1);
-                abs_A_1=zeros(3,1);
-                
-                for j_direction=1:2
-                    date_times=data_set.raw_data_set.get_date_times(j_direction);
-                    data=data_set.raw_data_set.get_z_positions(j_direction);
-                    A_1(j_direction)=CharmanIV(date_times,data,'day');
-                    abs_A_1(j_direction)=abs( A_1(j_direction) );
+%             self.data_set_list=cell(1,self.n_sets);
+            n_workers=self.analysis_parent.n_workers;
+            position_generator_list=self.analysis_parent.position_generator_list;
+%             Charman_chunks=cell(1,n_workers);
+            all_indices=1:self.n_sets; %All the data_set indices
+            indices_chunks=Signal_Group.divvy_up_array(all_indices,n_workers);
+            spmd
+                data_set_indices_chunk=indices_chunks{labindex};
+                position_generator=position_generator_list{labindex};
+                Charman_rows=cell(1,length(data_set_indices_chunk));
+                j_Charman_row=1;
+                for j_data_set_index=data_set_indices_chunk
+                    %Initialize data set
+                    data_set=Data_Set(self,j_data_set_index);
+                    
+                    %Create raw data set and calc data set
+                    %get date times (and put quip left first)
+                    [date_times,n_left]=generate_event_times();
+                    n_events=length(date_times);
+                    %get z-positions
+                    z_positions=position_generator.generate_z_positions(n_events);
+                    data_array=[date_times,z_positions];
+                    data_set.create_raw_data_set(data_array,n_left);
+                    data_set.create_calc_data_set();
+                    
+                    %add signal
+                    self.signal_func(data_set);
+                    
+                    %Create row for Charman table
+                    data_set_index=j_data_set_index*ones(3,1);
+                    direction=categorical({'left';'right';'averaged'});
+                    A_1=zeros(3,1);
+                    abs_A_1=zeros(3,1);
+                    
+                    for j_direction=1:2
+                        date_times=data_set.raw_data_set.get_date_times(j_direction);
+                        data=data_set.raw_data_set.get_z_positions(j_direction);
+                        A_1(j_direction)=CharmanIV(date_times,data,'day');
+                        abs_A_1(j_direction)=abs( A_1(j_direction) );
+                    end
+                    A_1(3)=data_set.weighted_average(A_1(1),A_1(2));
+                    abs_A_1(3)=data_set.weighted_average(abs_A_1(1),abs_A_1(2));
+                    Charman_rows{j_Charman_row}= ...
+                        table(data_set_index,direction,A_1,abs_A_1);
+                    
+                    %Unload raw data set and calc data set
+                    data_set.unload_raw_data_set();
+                    data_set.unload_calc_data_set();
+                    self.save_data_set(data_set);
+                    %                 self.data_set_list{j_data_set_index}=data_set;
+                    j_Charman_row=j_Charman_row+1;
                 end
-                A_1(3)=data_set.weighted_average(A_1(1),A_1(2));
-                abs_A_1(3)=data_set.weighted_average(abs_A_1(1),abs_A_1(2));
-                Charman_chunks{j_data_set_index}= ...
-                    table(data_set_index,direction,A_1,abs_A_1);
-                
-                %Unload raw data set and calc data set
-                data_set.unload_raw_data_set();
-                data_set.unload_calc_data_set();
-                self.save_data_set(data_set);
-                self.data_set_list{j_data_set_index}=data_set;
-            end
+                Charman_chunks=vertcat(Charman_rows{:});
+            end %End spmd
             
             %Assemble and save Charman_table
             Charman_table=vertcat(Charman_chunks{:}); %#ok<PROP>
@@ -297,6 +308,35 @@ classdef Signal_Group < handle
         end
         
     end
+    
+    methods (Hidden, Static)
+        
+        function chunks = divvy_up_array(data,n_chunks)
+            %Returns a cell array of n_workers vectors, each of which is the
+            %same size (+/-1)
+            n_points=length(data);
+            chunks=cell(1,n_chunks);
+            chunk_size=floor(n_points/n_chunks);
+            remainder=mod(n_points,n_chunks);
+            j_left=1;
+            j_right=j_left+chunk_size;
+            for j=1:n_chunks
+                if j<=remainder
+                    j_right=j_right+1;
+                end
+                if j_left<j_right
+                    %Add chunk
+                    chunks{j}=data(j_left:j_right-1);
+                elseif j_left==j_right
+                    %Out of data to divvy up
+                    chunks{j}=[];
+                end
+                j_left=j_right;
+                j_right=j_right+chunk_size;
+            end
+        end
+        
+    end %End Hidden Static methods
     
 end
 

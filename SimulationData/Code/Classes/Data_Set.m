@@ -17,13 +17,6 @@ classdef Data_Set < handle
         %Calc_Data_Set parameters
         calc_file_name %Name of Calc_Data_Set file
         calc_data_set %For storing the Calc_Data_Set
-        
-        %Signal_Data_Set parameters
-        %         signal_table %For stoing signal data sets and their meta data.  Row
-        %names are func names and the other two columns are a cell
-        %containing the signal data set object and a cell containing
-        %the file name.  Make sure you get the signal data set object
-        %and file name string out of theis cells before using them.
     end
     
     methods
