@@ -15,9 +15,15 @@
 //Define CMB parameters from Fixsen (Movement of Solar system barycenter
 //with respect to the CMB)
 //(http://iopscience.iop.org/0004-637X/707/2/916/pdf/0004-637X_707_2_916.pdf)
-#define CMB_SPEED    (0.0012338*299792458.0) // meters/sec
-#define CMB_L        263.87                  // degrees
-#define CMB_B        48.24                   // degrees
+#define CMB_SPEED_HELIO    (0.0012338*299792458.0) // meters/sec (Sun's CMB speed)
+#define CMB_L        263.87                        // degrees
+#define CMB_B        48.24                         // degrees
+
+//Location/Oritentation of Alpha
+#define LATITUDE     46.234063888888    // Degrees north of the equator.
+#define LONGITUDE    6.04616111111111   // Degrees east of the meridean.
+#define ALTITUDE     448.0              // Meters above sea level.
+#define ALPHA_NORTH_ANGLE   59.7        // Angle of trap axis (degrees East of North)
 
 //Other Constants
 #define VELOCITY_CONVERSION (149597870700.0/(24.0*60.0*60.0))
@@ -29,17 +35,19 @@ void get_velocities( double *in_array, size_t number_of_elements,
                      double *out_array2 )
 {
     //Variables
-    double jd_utc, jd_ut1, jd_tt;
+    double jd_utc, jd_ut1, jd_tt, last;
     double velocity[3];
     size_t j;
     int j1;
-    //CMB velocity variables (really constants)
-    double CMB_RIGHT_ASCENSION;
-    double CMB_DECLINATION;
+    //CMB velocity variables
+    double CMB_RIGHT_ASCENSION, CMB_DECLINATION;
+    double CMB_altitude, CMB_azimuth, CMB_speed;
+    double theta_trap, phi_trap; //Polar coorindates with trap axis as z-axis
+    //and phi=0 at the zenith
     double CMB_VELOCITY[3];
     ae_gal_to_radec(CMB_L,CMB_B,&CMB_RIGHT_ASCENSION,
                     &CMB_DECLINATION,1);
-    ae_polar_to_rect(CMB_RIGHT_ASCENSION,CMB_DECLINATION,CMB_SPEED,
+    ae_polar_to_rect(CMB_RIGHT_ASCENSION,CMB_DECLINATION,CMB_SPEED_HELIO,
                      CMB_VELOCITY);
     
     
@@ -78,11 +86,47 @@ void get_velocities( double *in_array, size_t number_of_elements,
                 //Convert velocity to m/s and add CMB velocity
         }
         
-        //Assign to output arrays
-        out_array0[j] = velocity[0];
-        out_array1[j] = velocity[1];
-        out_array2[j] = velocity[2];
+        //Get speed
+        CMB_speed=sqrt(velocity[0]*velocity[0]+
+                       velocity[1]*velocity[1]+
+                       velocity[2]*velocity[2]);
         
+        //Back to polar coordinates
+        ae_rect_to_polar(velocity,&CMB_RIGHT_ASCENSION,&CMB_DECLINATION,NULL);
+        
+        //Topocentric coordinates
+        aes_topocentric(jd_ut1, LATITUDE, LONGITUDE, 0.0,
+                       &CMB_RIGHT_ASCENSION, &CMB_DECLINATION);
+        
+        //Convert to altitude/azimuth
+        last = aes_last(jd_ut1, LONGITUDE);
+        ae_radec_to_altaz(last, LATITUDE, CMB_RIGHT_ASCENSION, CMB_DECLINATION,
+                          &CMB_altitude, &CMB_azimuth);
+        
+        //Subtract (angle to trap axis relative to North)
+        CMB_azimuth=CMB_azimuth-ALPHA_NORTH_ANGLE;
+        
+        //Convert to radians
+        CMB_altitude=CMB_altitude*AE_DTR;
+        CMB_azimuth=CMB_azimuth*AE_DTR;
+        
+        //Get the output coordinates
+        theta_trap=acos( cos(CMB_altitude)*cos(CMB_azimuth) );
+        phi_trap=atan2( cos(CMB_altitude)*sin(CMB_azimuth), sin(CMB_altitude));
+        
+        //Back to degrees
+        theta_trap=theta_trap*AE_RTD;
+        phi_trap=phi_trap*AE_RTD;
+        
+        //Assign to output arrays
+        out_array0[j] = CMB_speed;
+        out_array1[j] = theta_trap;
+        out_array2[j] = phi_trap;
+        
+        //Debugging output
+        //out_array0[j] = CMB_altitude*AE_RTD;
+        //out_array1[j] = CMB_azimuth*AE_RTD+ALPHA_NORTH_ANGLE;
+        //out_array2[j] = theta_trap; //already in degrees
 
     }
     

@@ -1,18 +1,18 @@
 classdef Calc_Data_Set
-    %Stores CMB Velocity, moon position, sun position, and any other calculated
-    %paramters,
+    %Class to store CMB Velocity, moon position, sun position, and/or any
+    %other calculated paramters,
     %   Calculating these takes a while, so it may be useful to just keep
     %   the results stored in an object for a while and then it can be
     %   deleted later to free up RAM or Hard Drive space.
     
     properties (SetAccess = private)
-        %CMB velocity
-        left_v_x %x-component of CMB velocity
-        left_v_y %y-component of CMB velocity
-        left_v_z %z-component of CMB velocity
-        right_v_x %x-component of CMB velocity
-        right_v_y %y-component of CMB velocity
-        right_v_z %z-component of CMB velocity
+        %CMB velocity (angles in degrees)
+        left_speed %Magnitude of CMB velocity
+        left_theta_trap %Angle between CMB velocity vector and trap axis
+        left_phi_trap %Rotation of CMB velocity about trap axis (phi=0 for zenith)
+        right_speed %Magnitude of CMB velocity
+        right_theta_trap %Angle between CMB velocity vector and trap axis
+        right_phi_trap %Rotation of CMB velocity about trap axis (phi=0 for zenith)
         
         %Moon Position %To be included later
 %         left_moon_altitude %moon's angular altitude (degrees)
@@ -36,25 +36,30 @@ classdef Calc_Data_Set
             %Initializes a Calculated_Data_Set
             left_date_times=raw_data_set.left_date_times;
             right_date_times=raw_data_set.right_date_times;
-            [self.left_v_x, sefl.left_v_y, self.left_v_z] = ...
+            [self.left_speed, self.left_theta_trap, self.left_phi_trap] = ...
                 datenum_to_cmb_velocity(left_date_times);
-            [self.right_v_x, sefl.right_v_y, self.right_v_z] = ...
+            [self.right_speed, self.right_theta_trap, self.right_phi_trap] = ...
                 datenum_to_cmb_velocity(right_date_times);
         end
         
-        function [v_x,v_y,v_z] = get_velocity(self,direction_index)
-            %Returns the CMB velocities in a given direction (1 for loeft
-            %or 2 for right).
+        function [speed,theta_trap,phi_trap] = get_velocity(self,direction_index)
+            %Returns the CMB velocity parameters in a given direction (1
+            %for left or 2 for right).
+            %   speed is the speed of the Earth relative to the CMB frame.
+            %   theta_trap is the angle between the trap axis and the CMB
+            %   velocity vector.  phi is the rotation angle of the CMB
+            %   velocity vector about the axis of the trap (phi=0 for the
+            %   zenith).
             if direction_index==1
-                v_x=self.left_v_x;
-                v_y=self.left_v_y;
-                v_z=self.left_v_z;
+                speed=self.left_speed;
+                theta_trap=self.left_theta_trap;
+                phi_trap=self.left_phi_trap;
             elseif direction_index==2
-                v_x=self.right_v_x;
-                v_y=self.right_v_y;
-                v_z=self.right_v_z;
+                speed=self.right_speed;
+                theta_trap=self.right_theta_trap;
+                phi_trap=self.right_phi_trap;
             else
-                msgIdent='Calc_Data_Set:get_velocities:InvalidDirection';
+                msgIdent='Calc_Data_Set:get_velocity:InvalidDirection';
                 msgString='Direction must be either 1 (for left) or 2 (for right)';
                 error(msgIdent,msgString);
             end

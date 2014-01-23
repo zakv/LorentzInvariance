@@ -1,12 +1,12 @@
-function [ v_x,v_y,v_z ] = datenum_to_cmb_velocity( datenum_times )
-%Returns three arrays, each with giving one component of the velocity (in
-%m/s in cartesian J2000 coordinates) at the corresponding time (given in
-%datenum() format).
-%   Input times should be given in datenum() format in the Geneva time zone
-%   with Daylight Savings effects removed. Each array returned is of the
-%   same size/dimensions as the input. The first array corresponds to the
-%   first components of the velocity vectors at the given time, and same
-%   the same sort of thing for the second and third arrays.
+function [ speed,theta,phi ] = datenum_to_cmb_velocity( datenum_times )
+%Returns three arrays: the first giving the CMB speed of the experiment,
+%the second giving the angle (theta, in degrees) of the trap relative to
+%the CMB velocity vector, and the third giving one last mostly irrelevant
+%position angle.
+%   The last angle (phi, in degrees) the rotation around the trap axis of
+%   the CMB velocity vector.  phi=0 corresponds to the CMB velocity vector
+%   pointing in the plane defined by a vector pointing to the zenith and
+%   one pointing along the trap axis.
 
     %Load aephem libraries if not already loaded
     if ~libisloaded('libaephem')
@@ -28,6 +28,6 @@ function [ v_x,v_y,v_z ] = datenum_to_cmb_velocity( datenum_times )
     unix_times=datenum_to_unix_time(datenum_times);
     
     %Use aephem to calculate Earth's velocity
-    [v_x,v_y,v_z]=cmb_velocity(unix_times); %gets three components
+    [speed,theta,phi]=cmb_velocity(unix_times); %gets three components
 end
 
