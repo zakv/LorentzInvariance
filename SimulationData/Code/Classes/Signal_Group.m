@@ -62,6 +62,7 @@ classdef Signal_Group < handle
             spmd
                 data_set_indices_chunk=indices_chunks{labindex};
                 position_generator=position_generator_list{labindex};
+                random_generator=position_generator.random_generator;
                 Charman_rows=cell(1,length(data_set_indices_chunk));
                 j_Charman_row=1;
                 for j_data_set_index=data_set_indices_chunk
@@ -70,7 +71,7 @@ classdef Signal_Group < handle
                     
                     %Create raw data set and calc data set
                     %get date times (and put quip left first)
-                    [date_times,n_left]=generate_event_times();
+                    [date_times,n_left]=generate_event_times(random_generator);
                     n_events=length(date_times);
                     %get z-positions
                     z_positions=position_generator.generate_z_positions(n_events);

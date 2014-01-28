@@ -1,4 +1,4 @@
-function [ event_times,n_left ] = generate_event_times()
+function [ event_times,n_left ] = generate_event_times(random_generator)
 %Need to chance which random number generator is used.  Need to update the
 %lambda values.
 
@@ -21,16 +21,16 @@ jMax=size(shift_starts_ends,1);
 for j=1:jMax
     shift_start=shift_starts_ends(j,1);
     shift_end=shift_starts_ends(j,2);
-    rand_val=rand();
+    rand_val=random_generator.rand(1);
     event_time=shift_start+get_interarrival_time(rand_val,time_lambda);
     while event_time<shift_end
-        rand_val=rand();
+        rand_val=random_generator.rand(1);
         n_Hbars=get_n_Hbars(rand_val,n_Hbar_lambda);
         %Add this to output event_times
         event_times(row_index:row_index+n_Hbars-1)=event_time;
         %Prepare for next iteration
         row_index=row_index+n_Hbars;
-        rand_val=rand();
+        rand_val=random_generator.rand(1);
         event_time=event_time+get_interarrival_time(rand_val,time_lambda);
     end
 end
@@ -63,64 +63,3 @@ while running_probability<rand_val_scaled
 end
 
 end
-
-%Below is some old code from when I had the wrong function for the
-%interarrival_time cdf.  It should no longer be necessary and will be
-%deleted in a future commit
-
-% function [interarrival_time] = get_interarrival_time(rand_val,time_lambda)
-% %Uses bisection to find inverse of the cdf
-% %   Returns the time corresponding to where the cdf equals the given random
-% %   value
-% 
-% tol=0.1/(24.0*60.0*60.0); %tolerance of 0.1 seconds
-% cdf_func=@(t)t+(exp(-time_lambda*t)-1)/time_lambda;
-% left=0;
-% right=1/24.0; %first guess for right end point is 1 hour
-% 
-% %Increase right value if necessary
-% while cdf_func(right)<rand_val
-%     left=right; %move left over
-%     right=right*2; %move right over
-% end
-% 
-% %Perfrom bisection
-% interarrival_time=bisect(cdf_func,rand_val,left,right,tol);
-% 
-% end
-% 
-% 
-% function middle = bisect(function_handle,rand_val,left,right,tol)
-% %Returns the x-value of where the function's output is rand_val
-% %   Used to get the inverse of the cdf at a particular y-value.  Only works
-% %   on monotonically increasing functions.
-% 
-% %Make sure input is suitable for bisection
-% if function_handle(left)>rand_val
-%     msgIdent='generate_event_times:bisect:InvalidLeftValue';
-%     msgString='The given left value must give a function value ';
-%     msgString=[msgString,'less than rand_val.'];
-%     error(msgIdent,msgString);
-% elseif function_handle(right)<rand_val
-%     msgIdent='generate_event_times:bisect:InvalidRightValue';
-%     msgString='The given right value must give a function value ';
-%     msgString=[msgString,'greater than rand_val.'];
-%     error(msgIdent,msgString);
-% end
-% 
-% middle=(left+right)*0.5;
-% n_iterations=0;
-% max_iterations=1000;
-% while right-left>tol && n_iterations<max_iterations
-%     current_val=function_handle(middle);
-%     if current_val>rand_val
-%         left=middle;
-%     elseif current_val<rand_val
-%         right=middle;
-%     elseif current_val==rand_val
-%         return
-%     end
-%     middle=0.5*(right+left);
-%     n_iterations=n_iterations+1;
-% end
-% end
