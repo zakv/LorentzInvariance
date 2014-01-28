@@ -2,6 +2,8 @@
 */*
 
 # Should add the generate_event_times.m
-# for each folder but ignore everything
-# else
+# for each folder
 !*/generate_event_times.m
+
+#Should include shift time data file
+!*/GuessedShiftSchedule*.xlsx
