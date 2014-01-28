@@ -11,7 +11,7 @@ BEGINING=datenum(2011,8,1,0,0,0); %Start of distribution
 END=datenum(2011,12,1,0,0,0); %End of distribution
 
 spread=END-BEGINING;
-random_numbers=transpose( random_generator.rand(N_EVENTS) );
+random_numbers=random_generator.rand(N_EVENTS);
 event_times=spread*random_numbers+BEGINING;
 n_left=0;
 

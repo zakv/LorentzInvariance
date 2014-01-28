@@ -25,8 +25,8 @@ classdef Random_Generator
         end
         
         function numbers = rand(self,n_numbers)
-            %Returns a row vector with the given number of elements
-            numbers=rand(self.stream,1,n_numbers);
+            %Returns a column vector with the given number of elements
+            numbers=rand(self.stream,n_numbers,1);
         end
         
     end
