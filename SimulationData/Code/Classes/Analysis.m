@@ -394,6 +394,12 @@ classdef Analysis < handle
                         bin_uncertainty(:,j_signal_group)=sqrt(bin_count)/sum(bin_count);
                     end
                     
+                    %Construct bin_center array (should be several
+                    %identical columns
+                    bin_center_cell_array=cell(1,jMax_signal_group);
+                    bin_center_cell_array(:)={bin_center'};
+                    bin_center=horzcat(bin_center_cell_array{:});
+                    
                     %Get names for legend
                     legend_names=cell(1,jMax_signal_group);
                     for j_signal_group=1:jMax_signal_group
@@ -401,7 +407,7 @@ classdef Analysis < handle
                         legend_names{j_signal_group}=signal_group.signal_name;
                     end
                     figure('WindowStyle','docked');
-                    errorbar([bin_center',bin_center'],bin_height,bin_uncertainty, ...
+                    errorbar(bin_center,bin_height,bin_uncertainty, ...
                         '-s','MarkerSize',4);
                     title([algorithm_string,' - ',period_string,' - ',data_name]);
                     legend(legend_names);
