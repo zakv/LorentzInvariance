@@ -53,10 +53,8 @@ classdef Signal_Group < handle
                 return
             end
             
-%             self.data_set_list=cell(1,self.n_sets);
             n_workers=self.analysis_parent.n_workers;
             position_generator_list=self.analysis_parent.position_generator_list;
-%             Charman_chunks=cell(1,n_workers);
             all_indices=1:self.n_sets; %All the data_set indices
             indices_chunks=Signal_Group.divvy_up_array(all_indices,n_workers);
             spmd
@@ -70,7 +68,7 @@ classdef Signal_Group < handle
                     data_set=Data_Set(self,j_data_set_index);
                     
                     %Create raw data set and calc data set
-                    %get date times (and put quip left first)
+                    %get date times
                     [date_times,n_left]=generate_event_times(random_generator);
                     n_events=length(date_times);
                     %get z-positions
@@ -108,6 +106,9 @@ classdef Signal_Group < handle
                 end
                 Charman_chunks=vertcat(Charman_rows{:});
             end %End spmd
+            
+            %Synchronize analysis parent random generators.
+            self.analysis_parent.sync_position_generator_list(position_generator(:)');
             
             %Assemble and save Charman_table
             Charman_table=vertcat(Charman_chunks{:}); %#ok<PROP>

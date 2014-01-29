@@ -1,4 +1,4 @@
-classdef Random_Generator
+classdef Random_Generator < handle
     %Class for generating random numbers
     %   Might change a lot in the future if we decide to use a different
     %   random number generator

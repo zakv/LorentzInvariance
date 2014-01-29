@@ -545,6 +545,13 @@ classdef Analysis < handle
             self.position_generator_list{generator_index}=position_generator;
         end
         
+        function [] = sync_position_generator_list(self,position_generator_list)
+            %You should not need to use this.  This function is used to
+            %synchronize the position generator list state after a copy has
+            %been made by passing it to a matlab worker in a parallel pool.
+            self.position_generator_list=position_generator_list;
+        end
+        
         function [] = start_parpool(self)
             %Starts up the parallel processing pool and creates
             %Position_Generator instances for the workers.
