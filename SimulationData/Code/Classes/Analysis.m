@@ -268,6 +268,9 @@ classdef Analysis < handle
             
             %Delete from self.signal_group_list
             self.signal_group_list(signal_group_index)=[];
+            
+            %Save the new self.signal_group_list
+            self.save_signal_group_list();
         end
         
         function [] = pop_signal_group(self)
