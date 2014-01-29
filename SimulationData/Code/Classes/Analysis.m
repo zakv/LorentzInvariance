@@ -92,7 +92,7 @@ classdef Analysis < handle
                 %Add default signal groups
                 self.add_signal_group(@signal_null,'null');
                 self.add_signal_group(@(data_set) ...
-                    signal_sine(data_set,0.01,'day',0),'daily sine');
+                    signal_sine(data_set,0.01,'day',0),'10mm daily sine');
             end
             
             %Set n_workers if a parpool exists
@@ -301,18 +301,14 @@ classdef Analysis < handle
         
         function [] = generate_Charman_histograms(self,varargin)
             %Generates and saves histograms of data from self.Charman_table
-            %    By default this function will plot the first signal group
-            %    (null) and last signal group (most recently added) with 30
-            %    bins.  Passing a cell array with group names will cause
-            %    the function to plot those groups, with the first one
-            %    setting the bin center positions.  Passing in a numeric
-            %    value will set the number of bins.
+            %    By default this function will plot all the signal groups.
+            %    Passing a cell array with group names will cause the
+            %    function to plot those groups, with the first one setting
+            %    the bin center positions.  Passing in a numeric value will
+            %    set the number of bins.
             
             %Defaults
-            signal_group_list={ ...
-                self.signal_group_list{1}, ...
-                self.signal_group_list{end}, ...
-                }; %#ok<PROP>
+            signal_group_list=self.signal_group_list; %#ok<PROP>
             n_bins=30;
             
             %Interpret input
@@ -409,7 +405,8 @@ classdef Analysis < handle
                     figure('WindowStyle','docked');
                     errorbar(bin_center,bin_height,bin_uncertainty, ...
                         '-s','MarkerSize',4);
-                    title([algorithm_string,' - ',period_string,' - ',data_name]);
+                    title([self.GENERATOR_NAME,' - ',algorithm_string, ...
+                        ' - ',period_string,' - ',data_name]);
                     legend(legend_names);
                     if strcmp(data_string,'z-position')
                         xlabel('S, weighted average of |A_1| (meters)');
