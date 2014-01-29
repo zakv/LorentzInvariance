@@ -231,6 +231,29 @@ classdef Analysis < handle
             end
         end
         
+        function [] = simple_add_sine(self,amplitude,varargin) %#ok<INUSL>
+            %Automatically addes a sine signal to self.signal_group_list
+            %with the given amplitude
+            %   The amplitude is in meters and the signal_group generated
+            %   has a name of the form "%d daily sine'.  You may also
+            %   specify n_sets by passing it as an additional argument.
+            command='self.add_signal_group(';
+            command=[command,sprintf('@(data_set)signal_sine(data_set,%0.15f,''day'',0),',amplitude)];
+            name=sprintf('''%dmm daily sine''',amplitude*1000);
+            command=[command,name];
+            if ~isempty(varargin)
+                n_sets=varargin{1};
+%                 self.add_signal_group( ...
+%                     @(data_set)signal_sine(data_set,amplitude,'day',0), ...
+%                     sprintf('%d daily sine',amplitude), ...
+%                     n_sets ...
+%                     );
+                command=[command,sprintf(',%d',n_sets)];
+            end
+            command=[command,');'];
+            disp(evalc(command));
+        end
+        
         function [] = delete_signal_group(self,signal_name)
             %Deletes the signal_group
             
