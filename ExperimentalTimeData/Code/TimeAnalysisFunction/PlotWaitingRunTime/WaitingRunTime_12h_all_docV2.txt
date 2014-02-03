@@ -1,0 +1,15 @@
+﻿[Excel sheet] Ver.2
+
+mean_12h     = 1.306hour
+std_12h     = 1.2286hour
+
+
+* The unit of time is ‘day’. The accuracy of the data is to a minute (=7*10^(-4)day).
+
+* All 320 runs (both 2010 and 2011 data) are considered for this analysis.
+
+* Contains only waiting times with less than 12 hours(=0.5 day) since one shift ends within 12 hours.
+
+* Contains only waiting time between two consecutive RUNs, not events. 
+Since the time difference between two events at same run is less than a second, we assume events with same run occurred at the same time, and those are not counted in this data sheet. Therefore, there are no waiting time data with ~0 second.
+
