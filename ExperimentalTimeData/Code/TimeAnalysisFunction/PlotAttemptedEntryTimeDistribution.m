@@ -73,7 +73,7 @@ xlabel(xlabelstr)
 ylabel(ylabelstr)
 
 %print
-cd('PlotEntryTimeDistribution')
+cd('PlotAttemptedEntryTimeDistribution')
 print(f2010,'-depsc','PlotTime2010.eps')
 print(f2011,'-depsc','PlotTime2011.eps')
 print(f2011_1,'-depsc','PlotTime2011_1.eps')
