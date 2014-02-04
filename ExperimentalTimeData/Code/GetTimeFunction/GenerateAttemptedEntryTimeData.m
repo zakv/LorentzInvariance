@@ -23,7 +23,11 @@ entryTimes2010 = unique(vertcat(entryTimes2010L,entryTimes2010R),'rows');
 entryTimes2011 = unique(entryTimes2011R,'rows');
 entryTimes = vertcat(entryTimes2010,entryTimes2011);
 
+AttemptedRun = entryTimes(:,2);
+AttemptedDataLog = entryTimes(:,3);
+
 oldDir = cd('../../Datasets');
+save('AttemptedRunData','AttemptedRun','AttemptedDataLog');
 save('AttemptedEntryTimeData','entryTimes2010R','entryTimes2010L','entryTimes2011R',...
     'entryTimes2010','entryTimes2011','entryTimes');
 cd(oldDir);
