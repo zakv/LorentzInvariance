@@ -132,6 +132,9 @@ classdef Analysis < handle
         function [] = add_signal_group(self,signal_func,varargin)
             %Adds a signal group with the given data to
             %self.signal_group_list
+            %   Ex: four_month.add_signal_group(@(data_set) ...
+            %       signal_sine(data_set,0.1,'day',0),'100mm daily sine',100)
+            %
             %   signal_func should be the handle to a function that takes
             %   a raw_data_set as an argument and returns a signal data
             %   set (which is a raw_data_set_instance with a signal
@@ -296,33 +299,12 @@ classdef Analysis < handle
         function [] = generate_signal_data(self)
             %Iterates over the signal groups and generates their data.
             
-            %Make sure no other generate_event_times() is in path
-            warning('off','MATLAB:rmpath:DirNotFound');
-            rmpath(self.data_set_root);
-            warning('on','MATLAB:rmpath:DirNotFound');
-            if exist('generate_event_times.m','file')==2
-                msgIdent='Analysis:generate_simulated_data_sets:';
-                msgIdent=[msgIdent,'Multiple_generate_event_times'];
-                msgString='A function named generate_event_times is in the';
-                msgString=[msgString,' Path and will take precedence over'];
-                msgString=[msgString,' the proper function. Please remove it'];
-                error(msgIdent,msgString);
-            end
-            addpath(self.data_set_root);
-            
             %Iterate over signal groups and run each of them.
             jMax=length(self.signal_group_list);
             for j=1:jMax
                 signal_group=self.signal_group_list{j};
-                fprintf('Generating data for signal group %s...\n', ...
-                    signal_group.signal_name);
-                start_time=clock;
-                signal_group=self.signal_group_list{j};
-                signal_group.run()
-                elapsed_time=etime(clock,start_time);
-                fprintf('Done. Took %0.2f seconds\n\n',elapsed_time);
+                self.generate_one_signal_group_data(signal_group);
             end
-            rmpath(self.data_set_root);
         end
         
         function [] = generate_Charman_histograms(self,varargin)
@@ -372,7 +354,8 @@ classdef Analysis < handle
                     if signal_group.Charman_table_file_exists()
                         signal_group.load_Charman_table();
                     else
-                        signal_group.generate_Charman_table();
+                        self.start_parpool();
+                        self.generate_one_signal_group_data(signal_group);
                     end
                 end
             end
@@ -397,30 +380,41 @@ classdef Analysis < handle
                     algorithm_string=algorithm_period_strings{j_algorithm_period,1};
                     period_string=algorithm_period_strings{j_algorithm_period,2};
                     
-                    %Do first histogram
-                    signal_group=signal_group_list{1}; %#ok<PROP>
-                    S_array=signal_group.extract_S_array();
+%                     %Do first histogram
+%                     signal_group=signal_group_list{1}; %#ok<PROP>
+%                     S_array=signal_group.extract_S_array();
+%                     bin_height=zeros(n_bins,jMax_signal_group);
+%                     bin_uncertainty=zeros(n_bins,jMax_signal_group);
+%                     [bin_count,bin_center]=hist(S_array,n_bins);
+%                     bin_height(:,1)=bin_count/sum(bin_count);
+%                     bin_uncertainty(:,1)=sqrt(bin_count)/sum(bin_count);
+%                     
+%                     %Do the rest of the histograms given the bin centers
+%                     %from above.
+%                     for j_signal_group=2:jMax_signal_group
+%                         signal_group=signal_group_list{j_signal_group}; %#ok<PROP>
+%                         S_array=signal_group.extract_S_array();
+%                         bin_count=hist(S_array,bin_center);
+%                         bin_height(:,j_signal_group)=bin_count/sum(bin_count);
+%                         bin_uncertainty(:,j_signal_group)=sqrt(bin_count)/sum(bin_count);
+%                     end
+%                     
+%                     %Construct bin_center array (should be several
+%                     %identical columns
+%                     bin_center_cell_array=cell(1,jMax_signal_group);
+%                     bin_center_cell_array(:)={bin_center'};
+%                     bin_center=horzcat(bin_center_cell_array{:});
+                    
+                    bin_center=zeros(n_bins,jMax_signal_group);
                     bin_height=zeros(n_bins,jMax_signal_group);
                     bin_uncertainty=zeros(n_bins,jMax_signal_group);
-                    [bin_count,bin_center]=hist(S_array,n_bins);
-                    bin_height(:,1)=bin_count/sum(bin_count);
-                    bin_uncertainty(:,1)=sqrt(bin_count)/sum(bin_count);
-                    
-                    %Do the rest of the histograms given the bin centers
-                    %from above.
-                    for j_signal_group=2:jMax_signal_group
+                    for j_signal_group=1:jMax_signal_group
                         signal_group=signal_group_list{j_signal_group}; %#ok<PROP>
                         S_array=signal_group.extract_S_array();
-                        [bin_count,bin_center]=hist(S_array,n_bins);
+                        [bin_count,bin_center(:,j_signal_group)]=hist(S_array,n_bins);
                         bin_height(:,j_signal_group)=bin_count/sum(bin_count);
                         bin_uncertainty(:,j_signal_group)=sqrt(bin_count)/sum(bin_count);
                     end
-                    
-                    %Construct bin_center array (should be several
-                    %identical columns
-                    bin_center_cell_array=cell(1,jMax_signal_group);
-                    bin_center_cell_array(:)={bin_center'};
-                    bin_center=horzcat(bin_center_cell_array{:});
                     
                     %Get names for legend
                     legend_names=cell(1,jMax_signal_group);
@@ -585,6 +579,37 @@ classdef Analysis < handle
             end
             self.n_workers=pool_instance.NumWorkers;
             self.update_position_generator_list();
+        end
+        
+        function [] = generate_one_signal_group_data(self,signal_group)
+            %Runs one signal group
+            
+            %Make sure we're calling the proper generate_event_times()
+            generate_event_times_dir=fileparts(which('generate_event_times'));
+            same_file=strcmp(fileparts(self.data_set_root),generate_event_times_dir); %Boolean
+            if ~isempty(generate_event_times_dir) && ~same_file
+                %There is a 'generate_event_times.m but its not in the
+                %directory of interest
+                msgIdent='Analysis:generate_simulated_data_sets:';
+                msgIdent=[msgIdent,'Multiple_generate_event_times'];
+                msgString='A function named generate_event_times is in ';
+                msgString=[msgString,generate_event_times_dir];
+                msgString=[msgString,' and will take precedence over'];
+                msgString=[msgString,' the proper function. Please remove it.'];
+                error(msgIdent,msgString);
+            end
+            
+            %Run the signal_group
+            fprintf('Generating data for signal group %s...\n', ...
+                signal_group.signal_name);
+            self.start_parpool();
+            start_time=clock;
+            addpath(self.data_set_root);
+            signal_group.run()
+            rmpath(self.data_set_root);
+            elapsed_time=etime(clock,start_time);
+            fprintf('Done. Took %0.2f seconds\n\n',elapsed_time);
+            
         end
         
         function [] = update_position_generator_list(self)
