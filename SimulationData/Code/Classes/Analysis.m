@@ -450,7 +450,7 @@ classdef Analysis < handle
             data_set_list=signal_group.data_set_list;
             %Try to load the data set list if it's empty
             if isempty(data_set_list)
-                signal_group.load_data_list();
+                signal_group.load_data_set_list();
             end
             data_set_list=signal_group.data_set_list;
             %If it's still empty, generate some data sets
