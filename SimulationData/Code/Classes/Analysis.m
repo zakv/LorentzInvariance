@@ -311,9 +311,8 @@ classdef Analysis < handle
             %Generates and saves histograms of data from self.Charman_table
             %    By default this function will plot all the signal groups.
             %    Passing a cell array with group names will cause the
-            %    function to plot those groups, with the first one setting
-            %    the bin center positions.  Passing in a numeric value will
-            %    set the number of bins.
+            %    function to plot those groups Passing in a numeric value
+            %    will set the number of bins.
             
             %Defaults
             signal_group_list=self.signal_group_list; %#ok<PROP>
