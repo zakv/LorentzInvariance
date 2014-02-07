@@ -153,7 +153,7 @@ classdef Signal_Group < handle
             fprintf('Loading data sets took %0.2f seconds\n',toc);
         end
         
-        function set_n_sets(self,n_sets)
+        function [] = set_n_sets(self,n_sets)
             %Figures out value to assign to self.n_sets from the given
             %argument.  If n_sets is 0, it uses a default value
             
@@ -164,6 +164,9 @@ classdef Signal_Group < handle
             
             %Make n_sets isn't too large and return
             self.n_sets=n_sets;
+            
+            %Save self
+            self.analysis_parent.save_signal_group_list();
         end
         
         function [] = load_Charman_table(self)
