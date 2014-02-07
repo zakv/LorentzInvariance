@@ -1,6 +1,11 @@
 function [ A_1 ] = CharmanII( date_times, data, period )
 %Computes A_1 from data using Charman's method from section II of
 %Charman_sinusoid_estimator.pdf.  Best for yearly signals.
+%   The value returned is actually 2*A_1 because the amplitude of the given
+%   frequency component has a contribution from A_-1, the fourier component
+%   for negative frequency of the same magnitude.  The signal resulting
+%   from adding the A_-1 (=conj(A_1)) is 2*abs(A_1)*cos(omega*t+arg(A_1))
+%
 %   date_times should be a column vector giving the times of the events.
 %   data should be a column vector giving the corresponding data of
 %   interest (z-positions of the events).  The data does not need to be sorted
@@ -51,4 +56,5 @@ numerator=Gamma_plus_minus*C-Gamma_plus_plus*C;
 denominator=abs(Gamma_plus_minus)^2-abs(Gamma_plus_plus)^2;
 A_1=numerator/denominator;
 
+A_1=2*A_1; %Return amplitude of component, which includes contribution from A_-1
 end

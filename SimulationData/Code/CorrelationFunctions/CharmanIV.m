@@ -1,6 +1,11 @@
 function [ A_1 ] = CharmanIV( date_times, data, period )
 %Computes A_1 from data using Charman's method from section IV of
 %Charman_sinusoid_estimator.pdf.  Best for daily signals.
+%   The value returned is actually 2*A_1 because the amplitude of the given
+%   frequency component has a contribution from A_-1, the fourier component
+%   for negative frequency of the same magnitude.  The signal resulting
+%   from adding the A_-1 (=conj(A_1)) is 2*abs(A_1)*cos(omega*t+arg(A_1))
+%
 %   date_times should be a column vector giving the times of the events.
 %   data should be a column vector giving the corresponding data of
 %   interest (z-positions of the events).  The data does not need to be sorted
@@ -49,5 +54,5 @@ if n_events>1
 elseif n_events==0
     A_1=NaN;
 end
-
+A_1=2*A_1; %Return amplitude of component, which includes contribution from A_-1
 end
