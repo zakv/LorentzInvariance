@@ -1,10 +1,9 @@
 function [ A_1 ] = CharmanII( date_times, data, period )
 %Computes A_1 from data using Charman's method from section II of
 %Charman_sinusoid_estimator.pdf.  Best for yearly signals.
-%   data should be an array with two columns in which each row has a
-%   date/time of an event and the wait time or z-position of the event.
-%   period is the period in sidereal days or a key word.  Each row of
-%   data_set should be a t,z pair.  The data does not need to be sorted
+%   date_times should be a column vector giving the times of the events.
+%   data should be a column vector giving the corresponding data of
+%   interest (z-positions of the events).  The data does not need to be sorted
 %   before passing it to this function.  If period is 'day', 'lunar', or
 %   'year', it will automatically be converted into sidereal days.  The
 %   times in data should be given in the format provided by datenum(),
