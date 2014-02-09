@@ -82,7 +82,7 @@ classdef Analysis < handle
             if self.tracer_file_name_file_exists()
                 self.load_tracer_file_name()
             else
-                self.set_tracer_file('large');
+                self.set_tracer_file('all');
             end
             
             %Load signal_group_list list if there is a saved copy
