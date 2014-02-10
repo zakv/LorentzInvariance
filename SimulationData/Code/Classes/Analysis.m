@@ -585,7 +585,8 @@ classdef Analysis < handle
             
             %Make sure we're calling the proper generate_event_times()
             generate_event_times_dir=fileparts(which('generate_event_times'));
-            same_file=strcmp(fileparts(self.data_set_root),generate_event_times_dir); %Boolean
+            same_file=strcmp(self.data_set_root,generate_event_times); %Boolean
+            same_file=same_file || strcmp(fileparts(self.data_set_root),generate_event_times_dir);
             if ~isempty(generate_event_times_dir) && ~same_file
                 %There is a 'generate_event_times.m but its not in the
                 %directory of interest
