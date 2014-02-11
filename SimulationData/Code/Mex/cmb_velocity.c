@@ -59,8 +59,14 @@ void get_velocities( double *in_array, size_t number_of_elements,
     //Ephemeride code gives a segfault
     //Open ephemerides
     //ae_jpl_init(EPHEMERIDE_FILE_NAME,&jpl_handle);
-      
-    for (j=0; j<number_of_elements; j++) {
+	
+	//earth velocity
+	double E_RIGHT_ASCENSION, E_DECLINATION, DIST;
+	double vel_size;
+	double EARTH_VELOCITY[3];
+	double e_helio[3] = {0,0,0};//don't consider the distance between sun and earth
+	
+	for (j=0; j<number_of_elements; j++) {
         //Convert to TT
         jd_utc = ae_ctime_to_jd(in_array[j]); //Julian date in UTC
         jd_ut1=jd_utc+ae_dut1(jd_utc)*AE_D_PER_S; //Julian date in UT1
@@ -77,12 +83,22 @@ void get_velocities( double *in_array, size_t number_of_elements,
         /*for (j1=0; j1<3; j1++) {
             velocity[j1]=0.0;
         }*/
-        
+		vel_size = sqrt(velocity[0]*velocity[0]+
+                       velocity[1]*velocity[1]+
+					velocity[2]*velocity[2]);
+		
+		//reduce heliocentric coordinates to geocentric coordinates
+		ae_geocentric(jd_tt, velocity, e_helio, velocity, &E_RIGHT_ASCENSION, &E_DECLINATION,
+					&DIST);
+
+		//change coordinates from heliocentric to earth rectangular
+		ae_polar_to_rect(E_RIGHT_ASCENSION, E_DECLINATION, vel_size, EARTH_VELOCITY);
+		
         //To get velocity of Earth relative to CMB, add the velocity of
         //Earth relative to the sun to the velocity of the sun relative
         //to the CMB        
         for (j1=0; j1<3; j1++) {
-            velocity[j1]=velocity[j1]*VELOCITY_CONVERSION+CMB_VELOCITY[j1];
+            velocity[j1]=EARTH_VELOCITY[j1]*VELOCITY_CONVERSION+CMB_VELOCITY[j1];
                 //Convert velocity to m/s and add CMB velocity
         }
         
