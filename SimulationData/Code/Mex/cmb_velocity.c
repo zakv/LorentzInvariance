@@ -91,7 +91,7 @@ void get_velocities( double *in_array, size_t number_of_elements,
 		ae_geocentric(jd_tt, velocity, e_helio, velocity, &E_RIGHT_ASCENSION, &E_DECLINATION,
 					&DIST);
 
-		//change coordinates from heliocentric to earth rectangular
+		//change coordinates from geocentric to earth rectangular
 		ae_polar_to_rect(E_RIGHT_ASCENSION, E_DECLINATION, vel_size, EARTH_VELOCITY);
 		
         //To get velocity of Earth relative to CMB, add the velocity of
