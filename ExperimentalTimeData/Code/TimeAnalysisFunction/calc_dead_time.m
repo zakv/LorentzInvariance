@@ -1,8 +1,6 @@
-function [deadTime] = calc_dead_time()
-
-oldDir = cd('../../DataSets');
-load('AttemptedStartingTimeCycleData');
-cd(oldDir);
+function [deadTime] = calc_dead_time(timeCycle)
+%Calculates the time between the start time of the cycle and the closest
+%successful event time after the start time.
 
 t = event_time();
 eventTime = t.local('all','all',0);
