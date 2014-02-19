@@ -16,12 +16,12 @@ classdef Tracer_Data_Set < handle
     
     methods
         
-        function self = TracerDataSet(file_name)
-            %Initializes the TracerDataSet instance.  file_name should the
+        function self = Tracer_Data_Set(file_name)
+            %Initializes the Tracer_Data_Set instance.  file_name should the
             %name of a file in the TracerOutput directory (without path).
             self.file_name=file_name;
             self.interpret_file_name(file_name);
-            full_file_name=fullfile(TracerDataSet.TRACER_DATA_DIR,file_name);
+            full_file_name=fullfile(Tracer_Data_Set.TRACER_DATA_DIR,file_name);
             self.z_positions=load_mat(full_file_name);
         end
         
@@ -32,10 +32,10 @@ classdef Tracer_Data_Set < handle
         function [] = interpret_file_name(self,file_name)
             %Parses the file name to set charge and quip
             
-            match=regexp(file_name,TracerDataSet.TRACER_REGEX,'tokens');
+            match=regexp(file_name,Tracer_Data_Set.TRACER_REGEX,'tokens');
             match=match{1};
             if isempty(match)
-                msgIdent='TracerDataSet:interpret_file_name:NameError';
+                msgIdent='Tracer_Data_Set:interpret_file_name:NameError';
                 msgString='Invalid file_name %s\nfile_name must be ';
                 msgString=[msgString,'something like p4e8L'];
                 error(msgIdent,msgString,file_name);
