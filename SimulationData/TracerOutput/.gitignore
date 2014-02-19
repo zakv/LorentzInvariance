@@ -2,3 +2,7 @@
 # slow things down
 AllSimData.*
 All*.mat
+
+#Ignore .ellip files since we only use
+#the .mat versions
+*.ellip
