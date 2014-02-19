@@ -8,6 +8,7 @@ classdef TracerDataSet < handle
     
     
     properties (SetAccess=private)
+        file_name %Name of file (without path)
         charge %Fractional charge given
         quip %direction, either 'left' or 'right'
         z_positions %z-positions of data
@@ -18,6 +19,7 @@ classdef TracerDataSet < handle
         function self = TracerDataSet(file_name)
             %Initializes the TracerDataSet instance.  file_name should the
             %name of a file in the TracerOutput directory (without path).
+            self.file_name=file_name;
             self.interpret_file_name(file_name);
             full_file_name=fullfile(TracerDataSet.TRACER_DATA_DIR,file_name);
             self.z_positions=load_mat(full_file_name);
