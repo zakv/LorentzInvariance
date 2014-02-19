@@ -1,4 +1,4 @@
-classdef TracerDataSet < handle
+classdef Tracer_Data_Set < handle
     %Stores the data from one tracer run (one charge and one quip).
     
     properties (Constant)
