@@ -1,4 +1,4 @@
-function [] = EllipToMat(file_name)
+function [] = ellip_to_mat(file_name)
 %Converts the given file_name into a sorted .mat file
 %   file_name should be relative to the TracerOutput directory.
     file_name=fullfile('../../TracerOutput/',file_name);
