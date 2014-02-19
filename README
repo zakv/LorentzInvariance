@@ -1,2 +1,20 @@
 For information on installation and use of this code, please
 refer to Code_Documentation.pdf in the Documentation directory.
+
+to-do list:
+  *Run simulations for many different charges
+  *Decide how to pick quip direction for generate_event_times()
+  *Correct for Daylight Savings time in shift times/run times data
+  *Add code to calculate/plot the other correlation coefficients
+    for z-position and speed/trap angle
+  *z-position interpolator?
+
+Low-priority to-do list:
+  *Check if java/X is available before generating Charman histograms
+    so that it doesn't produce errors when running without that
+    ability.
+  *Create a signal function that depends on theta_trap
+  *Have someone read the documentation?
+  *Set up cluster to run 64 processes?
+  *Figure out why Matlab graphics are so slow on server?
+  *Install vim 7.4 on server?
