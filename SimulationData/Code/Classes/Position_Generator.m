@@ -153,8 +153,9 @@ classdef Position_Generator < handle
             %Now we have the proper data sets.  Time to interpolate
             left_z_position=self.interpolate_z_cdf(left_tracer_set,rand_val);
             right_z_position=self.interpolate_z_cdf(right_tracer_set,rand_val);
-            left_weight=charge-left_tracer_set.charge;
-            right_weight=right_tracer_set.charge-charge;
+            %The following looks like it's switched, but is correct
+            right_weight=charge-left_tracer_set.charge;
+            left_weight=right_tracer_set.charge-charge;
             weight_sum=left_weight+right_weight;
             z_position=(left_weight*left_z_position+ ...
                 right_weight*right_z_position)/weight_sum;
@@ -184,8 +185,9 @@ classdef Position_Generator < handle
             index=index_scale*rand_val+1;
             left_index=floor(index);
             right_index=left_index+1;
-            left_weight=index-left_index;
-            right_weight=right_index-index;
+            %The following looks like it's switched, but is correct
+            right_weight=index-left_index;
+            left_weight=right_index-index;
             left_value=cdf_array(left_index);
             right_value=cdf_array(right_index);
             value=left_weight*left_value+right_weight*right_value;
