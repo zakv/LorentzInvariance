@@ -46,7 +46,7 @@ classdef Raw_Data_Set < handle
         function [] = set_z_positions(self,z_positions)
             %Sets right_z_positions and left_z_positions
             
-            if isempty(self.date_times)
+            if isempty(self.left_date_times) && isempty(self.right_date_times)
                 msgIdent='Raw_Data_Set:set_z_positions:date_times_unset';
                 msgString='date_times must be set before z_positions';
                 error(msgIdent,msgString);
@@ -62,7 +62,7 @@ classdef Raw_Data_Set < handle
         function [] = set_charges(self,charges)
             %Sets charges
             
-            if isempty(self.date_times)
+            if isempty(self.left_date_times) && isempty(self.right_date_times)
                 msgIdent='Raw_Data_Set:set_z_positions:date_times_unset';
                 msgString='date_times must be set before z_positions';
                 error(msgIdent,msgString);

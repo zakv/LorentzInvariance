@@ -74,11 +74,11 @@ classdef Signal_Group < handle
                     data_set.set_date_times(date_times,n_left);
                     
                     %Generate charge array using signal_func
-                    charges=self.signal_func(date_times,n_left);
+                    charges=self.signal_func(data_set);
                     data_set.set_charges(charges);
                     
                     %get z-positions
-                    z_positions=position_generator.generate_z_positions(data_set);
+                    z_positions=position_generator.generate_z_positions(charges,n_left);
                     data_set.set_z_positions(z_positions);
                     data_set.create_calc_data_set();
                     
