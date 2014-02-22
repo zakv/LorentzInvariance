@@ -1,4 +1,4 @@
-classdef Raw_Data_Set
+classdef Raw_Data_Set < handle
     %Stores all the raw data for one data set
     %   Records date times, wait times, and z-positions for left and right
     %   data.
@@ -7,38 +7,72 @@ classdef Raw_Data_Set
         %Left data
         left_date_times %Wall date/time of left events
         left_z_positions %z-position of left annihilations
+        left_charges %charges used for left annihilations
         n_left %Number of quip left data points
         
         %Right data
         right_date_times %Wall date/time of right events
         right_z_positions %z-position of right annihilations
+        right_charges %charges used for right annihilations
         n_right %Number of quip right data points
         
         %Other data
         n_events %Number of events
+        charges %fractional charges
     end
     
     methods
-        function self = Raw_Data_Set(data_array,n_left)
-            %Initializes a Raw_Data_Set assuming first Analysis.n_left rows
-            %are quip left data points.
-            %   data_array should have three columns, first should be the
-            %   data time, next should be the wait time, and last should be
-            %   the z-position data.  n_left should be the number of data
-            %   points taken with quip left (all quip left data should
-            %   appear before the quip right data);
+        
+        function self = Raw_Data_Set()
+            %Initializes a Raw_Data_Set 
             
-            self.n_left=n_left;
-            self.n_events=size(data_array,1);
-            self.n_right=self.n_events-self.n_left;
+        end
+        
+        function [] = set_date_times(self,date_times,n_left)
+            %Sets the left_date_times and right_date_times
             
             %Left data
-            self.left_date_times=data_array(1:n_left,1);
-            self.left_z_positions=data_array(1:n_left,2);
+            self.left_date_times=date_times(1:n_left);
             
             %Right data
-            self.right_date_times=data_array((n_left+1):end,1);
-            self.right_z_positions=data_array((n_left+1):end,2);
+            self.right_date_times=date_times((n_left+1):end);
+            
+            %Set other data
+            self.n_left=n_left;
+            self.n_events=length(date_times);
+            self.n_right=self.n_events-self.n_left;
+        end
+        
+        function [] = set_z_positions(self,z_positions)
+            %Sets right_z_positions and left_z_positions
+            
+            if isempty(self.date_times)
+                msgIdent='Raw_Data_Set:set_z_positions:date_times_unset';
+                msgString='date_times must be set before z_positions';
+                error(msgIdent,msgString);
+            end
+            
+            %Left data
+            self.left_z_positions=z_positions(1:self.n_left);
+            
+            %Right data
+            self.right_z_positions=z_positions((self.n_left+1):end);
+        end
+        
+        function [] = set_charges(self,charges)
+            %Sets charges
+            
+            if isempty(self.date_times)
+                msgIdent='Raw_Data_Set:set_z_positions:date_times_unset';
+                msgString='date_times must be set before z_positions';
+                error(msgIdent,msgString);
+            end
+            
+            %Left data
+            self.left_charges=charges(1:self.n_left);
+            
+            %Right data
+            self.right_charges=charges((self.n_left+1):end);
         end
         
         function data = get_z_positions(self,direction_index)

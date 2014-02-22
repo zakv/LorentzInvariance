@@ -66,19 +66,21 @@ classdef Signal_Group < handle
                 for j_data_set_index=data_set_indices_chunk
                     %Initialize data set
                     data_set=Data_Set(self,j_data_set_index);
+                    data_set.create_raw_data_set();
                     
                     %Create raw data set and calc data set
                     %get date times
                     [date_times,n_left]=generate_event_times(random_generator);
-                    n_events=length(date_times);
-                    %get z-positions
-                    z_positions=position_generator.generate_z_positions(n_events);
-                    data_array=[date_times,z_positions];
-                    data_set.create_raw_data_set(data_array,n_left);
-                    data_set.create_calc_data_set();
+                    data_set.set_date_times(date_times,n_left);
                     
-                    %add signal
-                    self.signal_func(data_set);
+                    %Generate charge array using signal_func
+                    charges=self.signal_func(date_times,n_left);
+                    data_set.set_charges(charges);
+                    
+                    %get z-positions
+                    z_positions=position_generator.generate_z_positions(data_set);
+                    data_set.set_z_positions(z_positions);
+                    data_set.create_calc_data_set();
                     
                     %Create row for Charman table
                     data_set_index=j_data_set_index*ones(3,1);

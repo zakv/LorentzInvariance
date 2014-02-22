@@ -51,13 +51,30 @@ classdef Data_Set < handle
             self.signal_parent=signal_parent;
         end
         
-        function [] = create_raw_data_set(self,data_array,n_left)
+        function [] = create_raw_data_set(self)
             %Creates a Raw_Data_Set instance from data_array
-            self.raw_data_set=Raw_Data_Set(data_array,n_left);
-            self.save_raw_data_set();
+            self.raw_data_set=Raw_Data_Set();
+        end
+        
+        function [] = set_date_times(self,date_times,n_left)
+            %Sets the date_times in the raw_data_set
+            self.raw_data_set.set_date_times(date_times,n_left);
             self.n_events=self.raw_data_set.n_events;
             self.n_left=self.raw_data_set.n_left;
             self.n_right=self.raw_data_set.n_right;
+            %self.save_raw_data_set();
+        end
+        
+        function [] = set_charges(self,charges)
+            %Sets the charges in the raw_data_set
+            self.raw_data_set.set_charges(charges);
+            %self.save_raw_data_set();
+        end
+        
+        function [] = set_z_positions(self,z_positions)
+            %Sets the z_positions in the raw_data_set and saves it
+            self.raw_data_set.set_z_positions(z_positions);
+            self.save_raw_data_set();
         end
         
         function [] = create_calc_data_set(self)
