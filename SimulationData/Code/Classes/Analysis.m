@@ -32,10 +32,6 @@ classdef Analysis < handle
         %Properties of instances of the Analysis Class that should not be
         %hidden
         GENERATOR_NAME %Name for generate_event_times() function
-        tracer_file_name%= ...
-%             fullfile(Analysis.SIMULATION_DATA, ...
-%             'TracerOutput', ...
-%             'LargeSimData.mat'); %Tracer output file
         signal_group_list %List of the instances signal groups
         n_workers %Number of workers in parpool
     end
@@ -55,7 +51,6 @@ classdef Analysis < handle
         signal_group_file_name %File name to save the signal_group_list
         position_generator_seeder %A prng based on a different (Lagged Fibnoacci)
         position_generator_list %List of the position generators
-        tracer_file_name_file %File used to save the value of self.tracer_file_name
     end
     
     methods
@@ -77,22 +72,15 @@ classdef Analysis < handle
                 RandStream('multFibonacci','Seed',seed);
             self.position_generator_list={};
             
-            %Load tracer_file_name if there is a saved copy, or else set it
-            %to the default
-            if self.tracer_file_name_file_exists()
-                self.load_tracer_file_name()
-            else
-                self.set_tracer_file('all');
-            end
-            
             %Load signal_group_list list if there is a saved copy
             if self.signal_group_file_exists()
                 self.load_signal_group_list();
             else
                 %Add default signal groups
                 self.add_signal_group(@signal_null,'null');
-                self.add_signal_group(@(data_set) ...
-                    signal_sine(data_set,0.01,'day',0),'10mm daily sine');
+%                 self.add_signal_group(@(data_set) ...
+%                     signal_sine(data_set,1e-8,'day',0));
+                self.simple_add_sine(1e-8);
             end
             
             %Set n_workers if a parpool exists
@@ -102,33 +90,7 @@ classdef Analysis < handle
             end
             
         end
-        
-        function [] = set_tracer_file(self,tracer_name)
-            %Selects a tracer data file for the position generators
-            %   file_name should be the name of a tracer data file in the
-            %   direcotry SimulationData/TracerOutput/ The current options
-            %   are MediumSimDataSorted.mat, LargeDataSetSorted.mat and
-            %   AllSimDataSorted.mat
-            if strcmp(tracer_name,'all')
-                tracer_name='AllSimDataSorted.mat';
-            elseif strcmp(tracer_name,'large')
-                tracer_name='LargeSimDataSorted.mat';
-            elseif strcmp(tracer_name,'medium')
-                tracer_name='MediumSimDataSorted.mat';
-            end
-            self.tracer_file_name=Analysis.interpret_tracer_name(tracer_name);
-            
-            %Update position generators
-            jMax=length(self.position_generator_list);
-            for j=1:jMax
-                position_generator=self.position_generator_list{j};
-                position_generator.set_tracer_file(self.tracer_file_name);
-            end
-            
-            %Save the tracer_file_name
-            self.save_tracer_file_name();
-        end
-        
+                
         function [] = add_signal_group(self,signal_func,varargin)
             %Adds a signal group with the given data to
             %self.signal_group_list
@@ -237,12 +199,13 @@ classdef Analysis < handle
         function [] = simple_add_sine(self,amplitude,varargin) %#ok<INUSL>
             %Automatically addes a sine signal to self.signal_group_list
             %with the given amplitude
-            %   The amplitude is in meters and the signal_group generated
-            %   has a name of the form "%d daily sine'.  You may also
-            %   specify n_sets by passing it as an additional argument.
+            %   The amplitude is the maximum fractional charge and the
+            %   signal_group generated has a name of the form "%d daily
+            %   sine'.  You may also specify n_sets by passing it as an
+            %   additional argument.
             command='self.add_signal_group(';
             command=[command,sprintf('@(data_set)signal_sine(data_set,%0.15f,''day'',0),',amplitude)];
-            name=sprintf('''%dmm daily sine''',amplitude*1000);
+            name=sprintf('''fracq=%0.2fe-8 daily sine''',amplitude*1.0e8);
             command=[command,name];
             if ~isempty(varargin)
                 n_sets=varargin{1};
@@ -494,31 +457,6 @@ classdef Analysis < handle
             %             name_string=strrep(name_string,'_','<underscore>');
         end
         
-        function tracer_file_name = interpret_tracer_name(tracer_name)
-            %Returns the file_name of the specified tracer data file with
-            %the relative path added.
-            %   'all' returns AllSimDataSorted.mat, 'large' returns
-            %   LargeSimDataSorted.mat, and medium returns
-            %   'MediumSimDataSorted.mat
-            if strcmp(tracer_name,'all')
-                tracer_name='AllSimDataSorted.mat';
-            elseif strcmp(tracer_name,'large')
-                tracer_name='LargeSimDataSorted.mat';
-            elseif strcmp(tracer_name,'medium')
-                tracer_name='MediumSimDataSorted.mat';
-            end
-            
-            %If the given tracer_name does not exist, it is probably just
-            %missing the relative path.
-            if exist(tracer_name,'file')==2
-                tracer_file_name=tracer_name;
-            else
-                tracer_file_name=fullfile(Analysis.SIMULATION_DATA, ...
-                    'TracerOutput', ...
-                    tracer_name);
-            end
-        end
-        
     end %End of static methods
     
     methods (Hidden)
@@ -539,8 +477,6 @@ classdef Analysis < handle
             end
             
             %Set some file names
-            file_name='tracer_name.mat';
-            self.tracer_file_name_file=fullfile(self.data_set_root,file_name);
             file_name='signal_group_list.mat';
             self.signal_group_file_name=fullfile(self.data_set_root,file_name);
         end
@@ -557,7 +493,7 @@ classdef Analysis < handle
             next_seed(1)=generator_index;
             next_seed(2)=rand(self.position_generator_seeder);
             position_generator= ...
-                Position_Generator(self.tracer_file_name,next_seed);
+                Position_Generator(next_seed);
             self.position_generator_list{generator_index}=position_generator;
         end
         
@@ -616,10 +552,13 @@ classdef Analysis < handle
             %set it to self.position_generator_list
             n_generators=length(self.position_generator_list);
             if self.n_workers>n_generators %Need more generators
+                tic;
                 jMax=self.n_workers-n_generators;
+                fprintf('Creating %d new position generators...\n',jMax);
                 for j=1:jMax
                     self.add_position_generator()
                 end
+                fprintf('Done.  Took %0.2f seconds\n\n',toc);
             elseif self.n_workers<n_generators %More generators than necessary
                 self.position_generator_list= ...
                     self.position_generator_list{1:self.n_workers};
@@ -682,26 +621,6 @@ classdef Analysis < handle
         function bool = signal_group_file_exists(self)
             %Checks if there is a saved signal_group_list file
             if exist(self.signal_group_file_name,'file')==2
-                bool=true;
-            else
-                bool=false;
-            end
-        end
-        
-        function [] = save_tracer_file_name(self)
-            %Save self.tracer_file_name to the self.data_set_root directory
-            save_mat(self.tracer_file_name_file,self.tracer_file_name);
-        end
-        
-        function [] = load_tracer_file_name(self)
-            %Loads the tracer_file_name from the harddrive
-            name_string=load_mat(self.tracer_file_name_file);
-            self.set_tracer_file(name_string);
-        end
-        
-        function bool = tracer_file_name_file_exists(self)
-            %Checks if there is a saved signal_group_list file
-            if exist(self.tracer_file_name_file,'file')==2
                 bool=true;
             else
                 bool=false;
