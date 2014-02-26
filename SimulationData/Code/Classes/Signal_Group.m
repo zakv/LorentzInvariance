@@ -53,6 +53,9 @@ classdef Signal_Group < handle
                 return
             end
             
+            %Create directories if necessary
+            self.create_directories();
+            
             n_workers=self.analysis_parent.n_workers;
             position_generator_list=self.analysis_parent.position_generator_list;
             all_indices=1:self.n_sets; %All the data_set indices
