@@ -273,29 +273,47 @@ classdef Analysis < handle
         function [] = generate_Charman_histograms(self,varargin)
             %Generates and saves histograms of data from self.Charman_table
             %    By default this function will plot all the signal groups.
-            %    Passing a cell array with group names will cause the
-            %    function to plot those groups Passing in a numeric value
-            %    will set the number of bins.
+            %    Passing a cell array with group names or indices will
+            %    cause the function to plot those groups. Passing in a
+            %    numeric value will set the number of bins.  If a numeric
+            %    array is passed as an argument, this will interpret it as
+            %    a list of indices of signal groups to plot
             
             %Defaults
             signal_group_list=self.signal_group_list; %#ok<PROP>
             n_bins=30;
             
             %Interpret input
+            convert_indices=false;
             convert_names=false;
             nVararg=length(varargin);
             for j=1:nVararg
                 current_arg=varargin{j};
                 if iscell(current_arg)
-                    signal_name_list=current_arg;
-                    convert_names=true;
+                    if ischar(current_arg{1})
+                        signal_name_list=current_arg;
+                        convert_names=true;
+                    elseif isnumeric(current_arg{1})
+                        indices=[current_arg{:}];
+                        convert_indices=true;
+                    end
                 elseif isnumeric(current_arg)
-                    n_bins=round(current_arg);
+                    if length(current_arg)==1
+                        n_bins=round(current_arg);
+                    else
+                        indices=current_arg;
+                        convert_indices=true;
+                    end
                 else
                     msgIdent='Analysis:generate_Charman_histograms:InvalidArgument';
                     msgString='Invalid argument.  Try harder next time.';
                     error(msgIdent,msgString);
                 end
+            end
+            %Convert siginal_group indices to a list of signal group
+            %instances if necessary
+            if convert_indices
+                signal_group_list=self.signal_group_list(indices); %#ok<PROP>
             end
             %Convert names to signal group instances if necessary
             if convert_names
@@ -342,31 +360,7 @@ classdef Analysis < handle
                     algorithm_string=algorithm_period_strings{j_algorithm_period,1};
                     period_string=algorithm_period_strings{j_algorithm_period,2};
                     
-%                     %Do first histogram
-%                     signal_group=signal_group_list{1}; %#ok<PROP>
-%                     S_array=signal_group.extract_S_array();
-%                     bin_height=zeros(n_bins,jMax_signal_group);
-%                     bin_uncertainty=zeros(n_bins,jMax_signal_group);
-%                     [bin_count,bin_center]=hist(S_array,n_bins);
-%                     bin_height(:,1)=bin_count/sum(bin_count);
-%                     bin_uncertainty(:,1)=sqrt(bin_count)/sum(bin_count);
-%                     
-%                     %Do the rest of the histograms given the bin centers
-%                     %from above.
-%                     for j_signal_group=2:jMax_signal_group
-%                         signal_group=signal_group_list{j_signal_group}; %#ok<PROP>
-%                         S_array=signal_group.extract_S_array();
-%                         bin_count=hist(S_array,bin_center);
-%                         bin_height(:,j_signal_group)=bin_count/sum(bin_count);
-%                         bin_uncertainty(:,j_signal_group)=sqrt(bin_count)/sum(bin_count);
-%                     end
-%                     
-%                     %Construct bin_center array (should be several
-%                     %identical columns
-%                     bin_center_cell_array=cell(1,jMax_signal_group);
-%                     bin_center_cell_array(:)={bin_center'};
-%                     bin_center=horzcat(bin_center_cell_array{:});
-                    
+                    %Perform binning and normalization
                     bin_center=zeros(n_bins,jMax_signal_group);
                     bin_height=zeros(n_bins,jMax_signal_group);
                     bin_uncertainty=zeros(n_bins,jMax_signal_group);

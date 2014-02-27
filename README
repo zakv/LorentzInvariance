@@ -8,6 +8,9 @@ to-do list:
   *Add code to calculate/plot the other correlation coefficients
     for z-position and speed/trap angle
   *Make Plots of CDFs with median/mean/mode of null CDF labeled
+  *Figure out why signal_group.set_n_sets() can take so long (it
+    has something to do with saving the signal group.  It's
+    writing way too much data)
 
 Low-priority to-do list:
   *Check if java/X is available before generating Charman histograms
