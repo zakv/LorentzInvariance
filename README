@@ -7,7 +7,7 @@ to-do list:
   *Correct for Daylight Savings time in shift times/run times data
   *Add code to calculate/plot the other correlation coefficients
     for z-position and speed/trap angle
-  *z-position interpolator?
+  *Make Plots of CDFs with median/mean/mode of null CDF labeled
 
 Low-priority to-do list:
   *Check if java/X is available before generating Charman histograms
