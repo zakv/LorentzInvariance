@@ -90,134 +90,24 @@ classdef Analysis < handle
             end
             
         end
-                
-        function [] = add_signal_group(self,signal_func,varargin)
-            %Adds a signal group with the given data to
-            %self.signal_group_list
-            %   Ex: four_month.add_signal_group(@(data_set) ...
-            %       signal_sine(data_set,0.1,'day',0),'100mm daily sine',100)
-            %
-            %   signal_func should be the handle to a function that takes
-            %   a raw_data_set as an argument and returns a signal data
-            %   set (which is a raw_data_set_instance with a signal
-            %   added).
-            %   You can also specify the signal_name or n_sets by passing
-            %   keyword arguments.  signal_name is the name used to
-            %   identify the signal function and n_sets is the number of
-            %   data sets to make.
-            
-            %Default values
-            signal_name=Analysis.func_to_signal_name(signal_func);
-            n_sets=0; %lets signal group choose the default
-            
-            %Interpret input
-            nVarargs=length(varargin);
-            do_while_loop=false;
-            if nVarargs==1
-                %If there's one input, take it as the signal_name if its a
-                %string or as n_sets if its a number
-                if ischar(varargin{1})
-                    signal_name=varargin{1};
-                elseif isnumeric(varargin{1})
-                    n_sets=varargin{1};
-                end
-            elseif nVarargs==2
-                %If there are two args, check if one is a flag.  If not,
-                %then assign the number to n_sets and the string to
-                %signal_name
-                if ismember(varargin{1},{'signal_name','n_sets'})
-                    do_while_loop=true;
-                else
-                    for j=1:2
-                        if ischar(varargin{j})
-                            signal_name=varargin{j};
-                        elseif isnumeric(varargin{j})
-                            n_sets=varargin{j};
-                        end
-                    end
-                end
-            else
-                %If there's more than two arguments, we'll do the while
-                %loop to interpret the arguments.
-                do_while_loop=true;
-            end
-            
-            if do_while_loop
-                j=1;
-                while j<=nVarargs
-                    if strcmp(varargin{j},'signal_name')
-                        signal_name=varargin{j+1};
-                        j=j+2;
-                    elseif strcmp(varargin{j},'n_sets')
-                        n_sets=varargin{j+1};
-                        j=j+2;
-                    else
-                        msgIdent='Analysis:add_signal_group:InvalidArguments';
-                        msgString='Invalid function call';
-                        error(msgIdent,msgString);
-                    end
-                end
-            end
-            
-            n_sets=round(n_sets); %make sure it's a positive integer
-            if n_sets<0
-                n_sets=0;
-            end
-            
-            %Make sure signal_func and signal_name aren't already used
-            jMax=length(self.signal_group_list);
-            already_used=false;
-            for j=1:jMax
-                signal_group=self.signal_group_list{j};
-                handles_equal=isequal(signal_func,signal_group.signal_func) ;
-                strings_equal=strcmp( func2str(signal_func), ...
-                    func2str(signal_group.signal_func) );
-                names_equal=strcmp(signal_name,signal_group.signal_name);
-                if handles_equal || strings_equal
-                    msgIdent='Analysis:add_signal_group:FuncAlreadyAdded';
-                    msgString='The given function %s is already in ';
-                    msgString=[msgString,'self.signal_group_list']; %#ok<AGROW>
-                    warning(msgIdent,msgString,func2str(signal_func));
-                    already_used=true;
-                elseif names_equal
-                    msgIdent='Analysis:add_signal_group:NameAlreadyAdded';
-                    msgString='The given function name %s is already in ';
-                    msgString=[msgString,'self.signal_group_list']; %#ok<AGROW>
-                    warning(msgIdent,msgString,signal_name);
-                    already_used=true;
-                end
-            end
-            
-            %Actually create signal_group and add it to the list
-            if ~already_used
-                signal_group=Signal_Group(self,signal_func,signal_name,n_sets);
-                self.signal_group_list{end+1}=signal_group;
-                self.save_signal_group_list();
-            end
-        end
         
-        function [] = simple_add_sine(self,amplitude,varargin) %#ok<INUSL>
+        function [] = simple_add_sine(self,amplitude,varargin)
             %Automatically addes a sine signal to self.signal_group_list
             %with the given amplitude
             %   The amplitude is the maximum fractional charge and the
             %   signal_group generated has a name of the form "%d daily
             %   sine'.  You may also specify n_sets by passing it as an
             %   additional argument.
-            command='self.add_signal_group(';
-            command=[command,sprintf('@(data_set)signal_sine(data_set,%0.15f,''day'',0),',amplitude)];
+            
+            handle=Analysis.get_simple_sine_handle(amplitude);
             name=sprintf('''fracq=%0.2fe-8 daily sine''',amplitude*1.0e8);
-            command=[command,name];
-            if ~isempty(varargin)
+            if isempty(varargin)
+                self.add_signal_group(handle,name);
+            else
                 n_sets=varargin{1};
-%                 self.add_signal_group( ...
-%                     @(data_set)signal_sine(data_set,amplitude,'day',0), ...
-%                     sprintf('%d daily sine',amplitude), ...
-%                     n_sets ...
-%                     );
-                command=[command,sprintf(',%d',n_sets)];
+                self.add_signal_group(handle,name,n_sets);
             end
-            command=[command,');'];
-            disp(evalc(command));
+            
         end
         
         function [] = delete_signal_group(self,signal_name)
@@ -237,6 +127,15 @@ classdef Analysis < handle
             
             %Save the new self.signal_group_list
             self.save_signal_group_list();
+        end
+        
+        function [] = set_all_n_sets(self,n_sets)
+            %Sets signal_group.n_sets to n_sets for all signal_groups in
+            %self.signal_group_list
+            jMax=length(self.signal_group_list);
+            for j=1:jMax
+                self.signal_group_list{j}.set_n_sets(n_sets);
+            end
         end
         
         function [] = pop_signal_group(self)
@@ -475,6 +374,123 @@ classdef Analysis < handle
             self.signal_group_file_name=fullfile(self.data_set_root,file_name);
         end
         
+        function [] = add_signal_group(self,signal_func,varargin)
+            %Adds a signal group with the given data to
+            %self.signal_group_list
+            %   Ex: four_month.add_signal_group(@(data_set) ...
+            %       signal_sine(data_set,0.1,'day',0),'100mm daily sine',100)
+            %
+            %   signal_func should be the handle to a function that takes
+            %   a raw_data_set as an argument and returns a signal data
+            %   set (which is a raw_data_set_instance with a signal
+            %   added).
+            %   You can also specify the signal_name or n_sets by passing
+            %   keyword arguments.  signal_name is the name used to
+            %   identify the signal function and n_sets is the number of
+            %   data sets to make.
+            %   This method used to be public, however I discovered that
+            %   there can be a recursion issue when saving
+            %   self.signal_group_list because the function handles include
+            %   a copy of the workspace in which they were created.  If
+            %   that workspace contains the analysis instance (which it
+            %   probably will for function handles created in the
+            %   interpretter) then you will get this cyclical dependence
+            %   that causes issues when saving.  Therefore this method
+            %   should probably only be used internally where we can be
+            %   sure to create function handles in a nearly empty namespace
+            %   that does not contain the analysis instance.  That is why
+            %   it is now a hidden method.
+            
+            %Default values
+            signal_name=Analysis.func_to_signal_name(signal_func);
+            n_sets=0; %lets signal group choose the default
+            
+            %Interpret input
+            nVarargs=length(varargin);
+            do_while_loop=false;
+            if nVarargs==1
+                %If there's one input, take it as the signal_name if its a
+                %string or as n_sets if its a number
+                if ischar(varargin{1})
+                    signal_name=varargin{1};
+                elseif isnumeric(varargin{1})
+                    n_sets=varargin{1};
+                end
+            elseif nVarargs==2
+                %If there are two args, check if one is a flag.  If not,
+                %then assign the number to n_sets and the string to
+                %signal_name
+                if ismember(varargin{1},{'signal_name','n_sets'})
+                    do_while_loop=true;
+                else
+                    for j=1:2
+                        if ischar(varargin{j})
+                            signal_name=varargin{j};
+                        elseif isnumeric(varargin{j})
+                            n_sets=varargin{j};
+                        end
+                    end
+                end
+            else
+                %If there's more than two arguments, we'll do the while
+                %loop to interpret the arguments.
+                do_while_loop=true;
+            end
+            
+            if do_while_loop
+                j=1;
+                while j<=nVarargs
+                    if strcmp(varargin{j},'signal_name')
+                        signal_name=varargin{j+1};
+                        j=j+2;
+                    elseif strcmp(varargin{j},'n_sets')
+                        n_sets=varargin{j+1};
+                        j=j+2;
+                    else
+                        msgIdent='Analysis:add_signal_group:InvalidArguments';
+                        msgString='Invalid function call';
+                        error(msgIdent,msgString);
+                    end
+                end
+            end
+            
+            n_sets=round(n_sets); %make sure it's a positive integer
+            if n_sets<0
+                n_sets=0;
+            end
+            
+            %Make sure signal_func and signal_name aren't already used
+            jMax=length(self.signal_group_list);
+            already_used=false;
+            for j=1:jMax
+                signal_group=self.signal_group_list{j};
+                handles_equal=isequal(signal_func,signal_group.signal_func) ;
+                strings_equal=strcmp( func2str(signal_func), ...
+                    func2str(signal_group.signal_func) );
+                names_equal=strcmp(signal_name,signal_group.signal_name);
+                if handles_equal || strings_equal
+                    msgIdent='Analysis:add_signal_group:FuncAlreadyAdded';
+                    msgString='The given function %s is already in ';
+                    msgString=[msgString,'self.signal_group_list']; %#ok<AGROW>
+                    warning(msgIdent,msgString,func2str(signal_func));
+                    already_used=true;
+                elseif names_equal
+                    msgIdent='Analysis:add_signal_group:NameAlreadyAdded';
+                    msgString='The given function name %s is already in ';
+                    msgString=[msgString,'self.signal_group_list']; %#ok<AGROW>
+                    warning(msgIdent,msgString,signal_name);
+                    already_used=true;
+                end
+            end
+            
+            %Actually create signal_group and add it to the list
+            if ~already_used
+                signal_group=Signal_Group(self,signal_func,signal_name,n_sets);
+                self.signal_group_list{end+1}=signal_group;
+                self.save_signal_group_list();
+            end
+        end
+        
         function [] = add_position_generator(self)
             %Adds a new position generator.
             
@@ -622,6 +638,26 @@ classdef Analysis < handle
         end
         
     end %End of hidden methods
+    
+    methods (Hidden,Static)
+        
+        function [handle] = get_simple_sine_handle(amplitude)
+            %This function exists because Matlab stores the workspace
+            %variables when creating a function handle.  This was an issue
+            %previously because this included the Analysis instance, which
+            %had a pointer to the signal_group instance with the function
+            %handle, which has a pointer to the Analysis, which has a
+            %pointer to the signal group instance, and on and on.  You can
+            %imagine how well that went when Matlab tried to save the
+            %signal group instance to a file.  It would sometimes save a
+            %file ~100MB and it would get larger each time you saved the
+            %signal_group_list.  This occured only after calling
+            %Analysis.run().  By creating a clean workspace here, this
+            %issue should be resolved.
+            handle=@(data_set)signal_sine(data_set,amplitude,'day',0);
+        end
+        
+    end
     
 end
 
