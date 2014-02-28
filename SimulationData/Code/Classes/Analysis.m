@@ -100,7 +100,7 @@ classdef Analysis < handle
             %   additional argument.
             
             handle=Analysis.get_simple_sine_handle(amplitude);
-            name=sprintf('''fracq=%0.2fe-8 daily sine''',amplitude*1.0e8);
+            name=sprintf('fracq=%0.3fe-8 daily sine',amplitude*1.0e8);
             if isempty(varargin)
                 self.add_signal_group(handle,name);
             else
@@ -267,8 +267,10 @@ classdef Analysis < handle
                         signal_group=signal_group_list{j_signal_group}; %#ok<PROP>
                         S_array=signal_group.extract_S_array();
                         [bin_count,bin_center(:,j_signal_group)]=hist(S_array,n_bins);
-                        bin_height(:,j_signal_group)=bin_count/sum(bin_count);
-                        bin_uncertainty(:,j_signal_group)=sqrt(bin_count)/sum(bin_count);
+                        %Now normalize it so that area under curve is 1
+                        area=trapz(bin_center(:,j_signal_group),bin_count);
+                        bin_height(:,j_signal_group)=bin_count/area;
+                        bin_uncertainty(:,j_signal_group)=sqrt(bin_count)/area;
                     end
                     
                     %Get names for legend
@@ -288,7 +290,7 @@ classdef Analysis < handle
                     elseif strcmp(data_string,'wait_time')
                         xlabel('S, weighted average of |A_1|, (seconds)');
                     end
-                    ylabel('Normalized Count')
+                    ylabel('Normalized Count (Integrate Area=1)')
                 end
             end
             
@@ -653,8 +655,29 @@ classdef Analysis < handle
             %file ~100MB and it would get larger each time you saved the
             %signal_group_list.  This occured only after calling
             %Analysis.run().  By creating a clean workspace here, this
-            %issue should be resolved.
-            handle=@(data_set)signal_sine(data_set,amplitude,'day',0);
+            %issue should be less dramatic.  However, it is still not
+            %totally solved because for some ungodly reason Matlab somehow
+            %manages to include the function handle it its own workspace,
+            %creating a cyclicaly dependence.  However, this isn't sooo bad
+            %because the function handles are so small that the saved files
+            %are still ~10kB.
+            %
+            %The reason for the odd way of creating the function handle is
+            %that if we simply created it with amplitude supplied as an
+            %argument, then func2str of this handle would literally have
+            %the word 'amplitude' in it instead of the value of amplitude.
+            %This is an issue because we could have two handles with
+            %different values of amplitude that both give the same string
+            %when passed to func2str.  That causes the error-checking to
+            %believe that the function is already in signal_group_list and
+            %so it is not added, even though it is indeed a new signal.
+            
+            %Old way to do it
+%             command=sprintf('handle=@(data_set)signal_sine(data_set,%0.3e,''day'',0),',amplitude);
+%             evalc(command);
+            
+            command=sprintf('@(data_set)signal_sine(data_set,%0.3e,''day'',0),',amplitude);
+            handle=eval(command);
         end
         
     end
