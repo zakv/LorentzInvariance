@@ -17,7 +17,11 @@ Low-priority to-do list:
     so that it doesn't produce errors when running without that
     ability.
   *Create a signal function that depends on theta_trap
+  *Fix the recursive references of signal funciton handles to
+    themselves, which causes their saved .mat files to be larger
+    than they should be.
   *Have someone read the documentation?
   *Set up cluster to run 64 processes?
   *Figure out why Matlab graphics are so slow on server?
   *Install vim 7.4 on server?
+
