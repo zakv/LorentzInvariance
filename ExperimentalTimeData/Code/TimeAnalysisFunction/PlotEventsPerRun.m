@@ -18,5 +18,7 @@ h = figure;
 bar(count)
 xlabel('Number of events per successful run')
 ylabel('Count')
+oldDir = cd('PlotEventsPerRun');
 print(h,'-depsc','NumberEventsPerRun_all.eps')
 print(h,'-dpdf','NumberEventsPerRun_all.pdf')
+cd(oldDir);
