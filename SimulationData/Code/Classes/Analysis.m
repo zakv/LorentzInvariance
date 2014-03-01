@@ -259,18 +259,25 @@ classdef Analysis < handle
                     algorithm_string=algorithm_period_strings{j_algorithm_period,1};
                     period_string=algorithm_period_strings{j_algorithm_period,2};
                     
-                    %Perform binning and normalization
+                    %Get S-values and calculate data for histogram/cdf
                     bin_center=zeros(n_bins,jMax_signal_group);
                     bin_height=zeros(n_bins,jMax_signal_group);
                     bin_uncertainty=zeros(n_bins,jMax_signal_group);
+                    cdf_data=cell(2*jMax_signal_group); %Cell array {X1,Y1,X2,Y2,...} for cdf plot
                     for j_signal_group=1:jMax_signal_group
                         signal_group=signal_group_list{j_signal_group}; %#ok<PROP>
                         S_array=signal_group.extract_S_array();
+                        S_array=sortrows(S_array);
                         [bin_count,bin_center(:,j_signal_group)]=hist(S_array,n_bins);
-                        %Now normalize it so that area under curve is 1
+                        %Do histogram caclulations and normalize it so that area under curve is 1
                         area=trapz(bin_center(:,j_signal_group),bin_count);
                         bin_height(:,j_signal_group)=bin_count/area;
                         bin_uncertainty(:,j_signal_group)=sqrt(bin_count)/area;
+                        %Store cdf data
+                        n_S=length(S_array);
+                        y_vals=transpose(1:n_S)./n_S;
+                        cdf_data{2*j_signal_group-1}=S_array;
+                        cdf_data{2*j_signal_group}=y_vals;
                     end
                     
                     %Get names for legend
@@ -279,18 +286,33 @@ classdef Analysis < handle
                         signal_group=signal_group_list{j_signal_group}; %#ok<PROP>
                         legend_names{j_signal_group}=signal_group.signal_name;
                     end
+                    
+                    %Make histogram
                     figure('WindowStyle','docked');
                     errorbar(bin_center,bin_height,bin_uncertainty, ...
                         '-s','MarkerSize',4);
                     title([self.GENERATOR_NAME,' - ',algorithm_string, ...
-                        ' - ',period_string,' - ',data_name]);
+                        ' - ',period_string,' - ',data_name,' - Histogram']);
                     legend(legend_names);
                     if strcmp(data_string,'z-position')
                         xlabel('S, weighted average of |A_1| (meters)');
                     elseif strcmp(data_string,'wait_time')
                         xlabel('S, weighted average of |A_1|, (seconds)');
                     end
-                    ylabel('Normalized Count (Integrate Area=1)')
+                    ylabel('Probability Density')
+                    
+                    %Make cdf
+                    figure('WindowStyle','docked');
+                    plot(cdf_data{:});
+                    title([self.GENERATOR_NAME,' - ',algorithm_string, ...
+                        ' - ',period_string,' - ',data_name,' - CDF']);
+                    legend(legend_names,'Location','SouthEast');
+                    if strcmp(data_string,'z-position')
+                        xlabel('S, weighted average of |A_1| (meters)');
+                    elseif strcmp(data_string,'wait_time')
+                        xlabel('S, weighted average of |A_1|, (seconds)');
+                    end
+                    ylabel('CDF')
                 end
             end
             
