@@ -573,7 +573,7 @@ classdef Analysis < handle
                 fprintf('Done.  Took %0.2f seconds\n\n',toc);
             elseif self.n_workers<n_generators %More generators than necessary
                 self.position_generator_list= ...
-                    self.position_generator_list{1:self.n_workers};
+                    self.position_generator_list(1:self.n_workers);
             end
         end
         
