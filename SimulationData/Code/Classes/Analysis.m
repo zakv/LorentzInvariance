@@ -304,15 +304,30 @@ classdef Analysis < handle
                     %Make cdf
                     figure('WindowStyle','docked');
                     plot(cdf_data{:});
+                    grid on
+                    legend(legend_names,'Location','SouthEast');
+
                     title([self.GENERATOR_NAME,' - ',algorithm_string, ...
                         ' - ',period_string,' - ',data_name,' - CDF']);
-                    legend(legend_names,'Location','SouthEast');
                     if strcmp(data_string,'z-position')
                         xlabel('S, weighted average of |A_1| (meters)');
                     elseif strcmp(data_string,'wait_time')
                         xlabel('S, weighted average of |A_1|, (seconds)');
                     end
                     ylabel('CDF')
+                    %plot vertical lines at mean and median
+                    median_S=median(cdf_data{1});
+                    mean_S=mean(cdf_data{1});
+                    ci90_S=prctile(cdf_data{1},90);
+                    hold on
+                    statistic_plots=plot( ...
+                        median_S*ones(2,1),[0,1],'--', ...
+                        mean_S*ones(2,1),[0,1],'--', ...
+                        ci90_S*ones(2,1),[0,1],'--' ...
+                        );
+                    hold off
+                    axes_handle=axes('position',get(gca,'position'),'visible','off'); %#ok<LAXES>
+                    legend(axes_handle,statistic_plots,'median','mean','90%','location','northwest');
                 end
             end
             
