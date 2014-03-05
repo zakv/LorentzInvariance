@@ -5,16 +5,18 @@ load('AttemptedStartingTimeData');
 cd(oldDir);
 
 AttemptedStartingTimeCycle = calc_time_cycle(AttemptedStartingTime);
-AttemptedEventPerCycle = calc_events_per_time_cycle(AttemptedStartingTimeCycle);
-
-oldDir = cd('../../DataSets');
-save('AttemptedStartingTimeCycleData','AttemptedStartingTimeCycle','AttemptedEventPerCycle');
-cd(oldDir);
+AttemptedEventN_start_end = calc_events_per_time_cycle(AttemptedStartingTimeCycle);
+AttemptedEventPerCycle = AttemptedEventN_start_end(:,1);
+AttemptedStartingTimeToFirstEvent = calc_dead_time(AttemptedStartingTimeCycle);
 
 SuccessfulStartingTimeCycle = AttemptedStartingTimeCycle(AttemptedEventPerCycle~=0,:);
-SuccessfulEventPerCycle = calc_events_per_time_cycle(SuccessfulStartingTimeCycle);
-deadTime = calc_dead_time(SuccessfulStartingTimeCycle);
+SuccessfulEventN_start_end = calc_events_per_time_cycle(SuccessfulStartingTimeCycle);
+SuccessfulEventPerCycle = SuccessfulEventN_start_end(:,1);
+SuccessfulStartingTimeToFirstEvent = calc_dead_time(SuccessfulStartingTimeCycle);
 
 oldDir = cd('../../DataSets');
-save('SuccessfulStartingTimeCycleData','SuccessfulStartingTimeCycle','SuccessfulEventPerCycle','deadTime');
+save('AttemptedStartingTimeCycleData','AttemptedStartingTimeCycle','AttemptedEventPerCycle',...
+    'AttemptedStartingTimeToFirstEvent');
+save('SuccessfulStartingTimeCycleData','SuccessfulStartingTimeCycle','SuccessfulEventPerCycle',...
+    'SuccessfulStartingTimeToFirstEvent');
 cd(oldDir);
