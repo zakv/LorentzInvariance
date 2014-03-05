@@ -1,11 +1,11 @@
 function [count] = calc_events_per_shift()
-%calculate successful events per shift cycle
+%calculate number of successful events per shift cycle
 
 oldDir = cd('../../DataSets');
-load('AttemptedEntryTimeCycleData');
+time_cycle_obj=load('AttemptedEntryTimeCycleData');
 cd(oldDir);
-startTime = timeCycle(:,1);
-endTime = timeCycle(:,2);
+startTime = time_cycle_obj.timeCycle(:,1);
+endTime = time_cycle_obj.timeCycle(:,2);
 t = event_time();
 time = t.local('all','all',0);
 run = t.run('all','all',0);
@@ -13,7 +13,7 @@ run = t.run('all','all',0);
 iMax = numel(time);
 jMax = numel(startTime);
 count = zeros(size(startTime));
-shiftFound = zeros(iMax,1); 
+shiftFound = zeros(iMax,1);
 
 for j = 1:jMax
     count(j) = 0;
