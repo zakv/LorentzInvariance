@@ -2,34 +2,53 @@
 %      and time from when shift starts to when the last run starts
 
 oldDir = cd('../../DataSets');
-load('GuessedShiftTimeData');% successfulShitTime
-load('AttemptedStartingTimeCycleData');% AttemptedStartingTime
+shift_time_obj = load('GuessedShiftTimeData');% successfulShitTime
+time_cycle_obj = load('AttemptedStartingTimeCycleData');% AttemptedStartingTime
 cd(oldDir);
 
-firstRunTime = AttemptedTimeCycle(:,1);
-lastRunTime = AttemptedTimeCycle(:,2);
-startTime = successfulShiftTime(:,1);
+firstRunTime = time_cycle_obj.AttemptedStartingTimeCycle(:,1);
+lastRunTime = time_cycle_obj.AttemptedStartingTimeCycle(:,2);
 
-iMax = numel(firstRunTime);
-jMax = numel(startTime);
-shiftStartToFirstRunTime = zeros(size(startTime));
-shiftStartToLastRunTime = zeros(size(startTime));
-k = 0;
+for m = 1:2
+    if m==1
+        shiftStartTime = shift_time_obj.successfulShiftTime(:,1);
+    end
+    if m==2
+        shiftStartTime = shift_time_obj.attemptedShiftTime(:,1);
+    end
 
-for j = 1:jMax
-    for i = 1:iMax
-        if startTime(j) < firstRunTime(i)
-            k = k+1;
-            shiftStartToFirstRunTime(k) = firstRunTime(i) - startTime(j);
-            shiftStartToLastRunTime(k) = lastRunTime(i) - startTime(j);
-            break
+    iMax = numel(firstRunTime);
+    jMax = numel(shiftStartTime);
+    shiftStartToFirstRunTime = zeros(size(shiftStartTime));
+    shiftStartToLastRunTime = zeros(size(shiftStartTime));
+    k = 0;
+
+    for j = 1:jMax
+        for i = 1:iMax
+            if shiftStartTime(j) < firstRunTime(i)
+                k = k+1;
+                shiftStartToFirstRunTime(k) = firstRunTime(i) - shiftStartTime(j);
+                shiftStartToLastRunTime(k) = lastRunTime(i) - shiftStartTime(j);
+                break
+            end
         end
     end
+    shiftStartToFirstRunTime(k+1:jMax,:) = [];
+    shiftStartToLastRunTime(k+1:jMax,:) = [];
+
+    if m==1
+        successfulShiftStartToFirstAttemptedRunTime = shiftStartToFirstRunTime;
+        successfulShiftStartToLastAttemptedRunTime = shiftStartToLastRunTime;
+    end
+    if m==2
+        attemptedShiftStartToFirstAttemptedRunTime = shiftStartToFirstRunTime;
+        attemptedShiftStartToLastAttemptedRunTime = shiftStartToLastRunTime;
+    end    
 end
-shiftStartToFirstRunTime(k+1:jMax,:) = [];
-shiftStartToLastRunTime(k+1:jMax,:) = [];
 
 oldDir = cd('../../DataSets');
-save('ShiftStartToFirstAndLastRunTimeData', 'shiftStartToFirstRunTime','shiftStartToLastRunTime');
+save('ShiftStartToFirstAndLastRunTimeData',...
+    'successfulShiftStartToFirstAttemptedRunTime','successfulShiftStartToLastAttemptedRunTime',...
+    'attemptedShiftStartToFirstAttemptedRunTime','attemptedShiftStartToLastAttemptedRunTime');
 cd(oldDir);
 
