@@ -1,5 +1,8 @@
 function [time] = get_starting_time(runNumber,logtype)
 %Gets first clock time that appears on elog for each run
+%logtype = 'elog' or 1 for successful run
+%          'DataLog' or 'dataLog' or 0 for failed run
+
 iMax = numel(runNumber);
 time = zeros(size(runNumber));
 
@@ -14,14 +17,14 @@ for i = 1:iMax
     dirList1=dir(dataDir1);
     dirList2=dir(dataDir2);
     fileNameFound=false;
-    if strcmp(logtype,'elog') ==1
+    if strcmp(logtype,'elog') ==1 || logtype == 1
         for j=1:length(dirList1)
             if ~isempty(regexp(dirList1(j).name,fileNamePattern1,'match'))
                 fileName=fullfile(dataDir1,dirList1(j).name);
                 fileNameFound=true;
             end
         end
-    else if strcmp(logtype,'DataLog') == 1 || strcmp(logtype,'dataLog') == 1
+    else if strcmp(logtype,'DataLog') == 1 || strcmp(logtype,'dataLog') == 1 || logtype == 0
         for j=1:length(dirList2)
             if ~isempty(regexp(dirList2(j).name,fileNamePattern2,'match'))
                 fileName=fullfile(dataDir2,dirList2(j).name);
