@@ -56,6 +56,23 @@ classdef Signal_Group < handle
             %Create directories if necessary
             self.create_directories();
             
+            %Things to iterate over for Charman Table
+            algorithm_list={ ...
+                @(date_times,data,period)CharmanII(date_times,data,period), 'Charman II';
+                @(date_times,data,period)CharmanIV(date_times,data,period), 'Charman IV';
+                };
+            jMax_algorithm=size(algorithm_list,1);
+            period_list={ ...
+                'day','day';
+                'year','year';
+                };
+            jMax_period=size(period_list,1);
+            direction_list={...
+                'left','left'; ...
+                'right','right'; ...
+                'averaged','averaged'; ...
+                };
+            
             n_workers=self.analysis_parent.n_workers;
             position_generator_list=self.analysis_parent.position_generator_list;
             all_indices=1:self.n_sets; %All the data_set indices
@@ -64,7 +81,18 @@ classdef Signal_Group < handle
                 data_set_indices_chunk=indices_chunks{labindex};
                 position_generator=position_generator_list{labindex};
                 random_generator=position_generator.random_generator;
-                Charman_rows=cell(1,length(data_set_indices_chunk));
+                n_rows=length(data_set_indices_chunk)*...
+                    jMax_algorithm*jMax_period*3; %3 for direction
+                Charman_rows=cell(1,n_rows);
+                variable_names={ ...
+                    'data_set_index', ...
+                    'algorithm', ...
+                    'period', ...
+                    'direction', ...
+                    'A_1', ...
+                    'abs_A_1',...
+                    };
+                
                 j_Charman_row=1;
                 for j_data_set_index=data_set_indices_chunk
                     %Initialize data set
@@ -85,29 +113,42 @@ classdef Signal_Group < handle
                     data_set.set_z_positions(z_positions);
                     data_set.create_calc_data_set();
                     
-                    %Create row for Charman table
-                    data_set_index=j_data_set_index*ones(3,1);
-                    direction=categorical({'left';'right';'averaged'});
-                    A_1=zeros(3,1);
-                    abs_A_1=zeros(3,1);
-                    
-                    for j_direction=1:2
-                        date_times=data_set.raw_data_set.get_date_times(j_direction);
-                        data=data_set.raw_data_set.get_z_positions(j_direction);
-                        A_1(j_direction)=CharmanIV(date_times,data,'day');
-                        abs_A_1(j_direction)=abs( A_1(j_direction) );
+                    for j_algorithm=1:jMax_algorithm
+                        algorithm=algorithm_list{j_algorithm,1};
+                        algorithm_string=algorithm_list(j_algorithm,2);
+                        for j_period=1:jMax_period
+                            period=period_list{j_period,1};
+                            period_string=period_list(j_period,2);
+%                             data_set_index=j_data_set_index*ones(3,1);
+                            A_1=zeros(3,1);
+                            abs_A_1=zeros(3,1);
+                            for j_direction=1:2
+                                %direction=direction_list{j_direction,1};
+                                direction_string=direction_list(j_direction,2);
+                                date_times=data_set.raw_data_set.get_date_times(j_direction);
+                                data=data_set.raw_data_set.get_z_positions(j_direction);
+                                A_1(j_direction)=algorithm(date_times,data,period);
+                                abs_A_1(j_direction)=abs( A_1(j_direction) );
+                                row=table(j_data_set_index,algorithm_string,period_string,direction_string, ...
+                                    A_1(j_direction),abs_A_1(j_direction),'VariableNames',variable_names);
+                                Charman_rows{j_Charman_row}=row;
+                                j_Charman_row=j_Charman_row+1;
+                            end
+                            j_direction=j_direction+1;
+                            A_1(j_direction)=data_set.weighted_average(A_1(1),A_1(2));
+                            abs_A_1(j_direction)=data_set.weighted_average(abs_A_1(1),abs_A_1(2));
+                            row=table(j_data_set_index,algorithm_string,period_string,{'averaged'}, ...
+                                A_1(j_direction),abs_A_1(j_direction),'VariableNames',variable_names);
+                            Charman_rows{j_Charman_row}=row;
+                            j_Charman_row=j_Charman_row+1;
+                        end
                     end
-                    A_1(3)=data_set.weighted_average(A_1(1),A_1(2));
-                    abs_A_1(3)=data_set.weighted_average(abs_A_1(1),abs_A_1(2));
-                    Charman_rows{j_Charman_row}= ...
-                        table(data_set_index,direction,A_1,abs_A_1);
                     
                     %Unload raw data set and calc data set
                     data_set.unload_raw_data_set();
                     data_set.unload_calc_data_set();
                     self.save_data_set(data_set);
-                    %                 self.data_set_list{j_data_set_index}=data_set;
-                    j_Charman_row=j_Charman_row+1;
+                    %self.data_set_list{j_data_set_index}=data_set;
                 end
                 Charman_chunks=vertcat(Charman_rows{:});
             end %End spmd
@@ -117,6 +158,8 @@ classdef Signal_Group < handle
             
             %Assemble and save Charman_table
             Charman_table=vertcat(Charman_chunks{:}); %#ok<PROP>
+            Charman_table.algorithm=categorical(Charman_table.algorithm); %#ok<PROP>
+            Charman_table.period=categorical(Charman_table.period); %#ok<PROP>
             Charman_table.direction=categorical(Charman_table.direction); %#ok<PROP>
             self.Charman_table=Charman_table; %#ok<PROP>
             self.save_Charman_table();
@@ -295,9 +338,11 @@ classdef Signal_Group < handle
             end
         end
         
-        function S_array = extract_S_array(self)
+        function S_array = extract_S_array(self,algorithm_string,period_string)
             %Helper function used by generate_Charman_histograms
             filtered_table=filter_table(self.Charman_table,'direction','averaged');
+            filtered_table=filter_table(filtered_table,'algorithm',algorithm_string, ...
+                'period',period_string);
             S_array=filtered_table.abs_A_1;
         end
         
