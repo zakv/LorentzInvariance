@@ -246,7 +246,7 @@ classdef Analysis < handle
                 %                 'wait_time','wait time'; ...
                 };
             algorithm_period_strings={ ...
-                %                 'Charman II', 'year'; ...
+                'Charman II', 'year'; ...
                 'Charman IV', 'day'; ...
                 };
             jMax_data=size(data_strings,1);
@@ -266,7 +266,7 @@ classdef Analysis < handle
                     cdf_data=cell(2*jMax_signal_group); %Cell array {X1,Y1,X2,Y2,...} for cdf plot
                     for j_signal_group=1:jMax_signal_group
                         signal_group=signal_group_list{j_signal_group}; %#ok<PROP>
-                        S_array=signal_group.extract_S_array();
+                        S_array=signal_group.extract_S_array(algorithm_string,period_string);
                         S_array=sortrows(S_array);
                         [bin_count,bin_center(:,j_signal_group)]=hist(S_array,n_bins);
                         %Do histogram caclulations and normalize it so that area under curve is 1
