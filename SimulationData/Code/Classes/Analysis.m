@@ -78,8 +78,6 @@ classdef Analysis < handle
             else
                 %Add default signal groups
                 self.add_signal_group(@signal_null,'null');
-%                 self.add_signal_group(@(data_set) ...
-%                     signal_sine(data_set,1e-8,'day',0));
                 self.simple_add_sine(1e-8);
             end
             
@@ -99,12 +97,40 @@ classdef Analysis < handle
             %   sine'.  You may also specify n_sets by passing it as an
             %   additional argument.
             
-            handle=Analysis.get_simple_sine_handle(amplitude);
-            name=sprintf('fracq=%0.3fe-8 daily sine',amplitude*1.0e8);
-            if isempty(varargin)
+            %Default arguments:
+            period='day';
+            phase=0;
+            n_sets=0; %if n_sets>=0, this will let self.add_signal_group choose the default
+            jMax=length(varargin);
+            j=1;
+            if jMax>0
+                while j<=jMax
+                    arg_string=varargin{j};
+                    if strcmp(arg_string,'period')
+                        period=varargin{j+1};
+                    elseif strcmp(arg_string,'phase')
+                        phase=varargin{j+1};
+                    elseif strcmp(arg_string,'n_sets')
+                        n_sets=varargin{j+1};
+                    else
+                        msgIdent='Analysis:simple_add_sine:InvalidArgument';
+                        msgString='Received invalid optional argument %s';
+                        error(msgIdent,msgString,arg_string);
+                    end
+                    j=j+2;
+                end
+            end
+            
+            handle=Analysis.get_sine_handle(amplitude,period,phase);
+            if phase==0
+                name=sprintf('fracq=%0.3fe-8 %s sine',amplitude*1.0e8,period);
+            else
+                name=sprintf('fracq=%0.3fe-8 %s sine phase=%e rad',amplitude*1.0e8,period);
+            end
+                
+            if n_sets<=0
                 self.add_signal_group(handle,name);
             else
-                n_sets=varargin{1};
                 self.add_signal_group(handle,name,n_sets);
             end
             
@@ -680,7 +706,7 @@ classdef Analysis < handle
     
     methods (Hidden,Static)
         
-        function [handle] = get_simple_sine_handle(amplitude)
+        function [handle] = get_sine_handle(amplitude,period,phase)
             %This function exists because Matlab stores the workspace
             %variables when creating a function handle.  This was an issue
             %previously because this included the Analysis instance, which
@@ -709,11 +735,9 @@ classdef Analysis < handle
             %believe that the function is already in signal_group_list and
             %so it is not added, even though it is indeed a new signal.
             
-            %Old way to do it
-%             command=sprintf('handle=@(data_set)signal_sine(data_set,%0.3e,''day'',0),',amplitude);
-%             evalc(command);
             
-            command=sprintf('@(data_set)signal_sine(data_set,%0.3e,''day'',0),',amplitude);
+            command=sprintf('@(data_set)signal_sine(data_set,%0.3e,''%s'',%e),',amplitude,period,phase);
+%             evalc(command); %Old way to do it
             handle=eval(command);
         end
         
