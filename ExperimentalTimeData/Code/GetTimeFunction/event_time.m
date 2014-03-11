@@ -21,7 +21,11 @@ function tobj = event_time()
 
 oldDr = cd('../../DataSets/');
 data = load('EventTimeData');
+failed_run_obj = load('FailedRunData.mat');
 cd(oldDr);
+
+failedRun_g = failed_run_obj.failedRun;
+failedDataLog_g = failed_run_obj.failedDataLog;
 
 run2011R = data.run2011R;
 st2011R = data.st2011R;
@@ -61,6 +65,14 @@ type2010L_a = data.type2010L_a;
  
 tobj = public();
 
+    function failedRun = failedRunNumber()
+        failedRun = failedRun_g;
+    end
+
+    function failedDataLog = failedDataLogNumber()
+        failedDataLog = failedDataLog_g;
+    end
+        
     function run = runNumber(year,RorL,mode)
 
         if mode == 1
@@ -294,6 +306,8 @@ function type = type(year,RorL,mode)
 
     function o = public()
         o = struct(...
+            'failedRun', @failedRunNumber,...
+            'failedDataLog', @failedDataLogNumber,...
             'utc', @utc,...
             'run', @runNumber,...
             'utc_jd', @utc_jd,...
