@@ -22,10 +22,12 @@ function tobj = event_time()
 oldDr = cd('../../DataSets/');
 data = load('EventTimeData');
 failed_run_obj = load('FailedRunData.mat');
+spill_log_obj = load('spillLogEntryTimeData.mat');
 cd(oldDr);
 
 failedRun_g = failed_run_obj.failedRun;
 failedDataLog_g = failed_run_obj.failedDataLog;
+spillLogEntryTime_g = spill_log_obj.spillLogEntryTime;
 
 run2011R = data.run2011R;
 st2011R = data.st2011R;
@@ -71,6 +73,10 @@ tobj = public();
 
     function failedDataLog = failedDataLogNumber()
         failedDataLog = failedDataLog_g;
+    end
+
+    function spillLogEntryLocal = spillLogEntryTime()
+        spillLogEntryLocal = spillLogEntryTime_g;
     end
         
     function run = runNumber(year,RorL,mode)
@@ -306,6 +312,7 @@ function type = type(year,RorL,mode)
 
     function o = public()
         o = struct(...
+            'spillLogEntryLocal', @spillLogEntryTime,...
             'failedRun', @failedRunNumber,...
             'failedDataLog', @failedDataLogNumber,...
             'utc', @utc,...
