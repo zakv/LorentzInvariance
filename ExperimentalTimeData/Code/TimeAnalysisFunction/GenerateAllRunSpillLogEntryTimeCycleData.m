@@ -2,9 +2,9 @@
 %shift
 
 t = event_time();
-spillLogEntryTime = t.spillLogEntryTime();
+spillLogEntryLocal = t.spillLogEntryLocal();
 
-timeCycle = calc_time_cycle(spillLogEntryTime);
+timeCycle = calc_time_cycle(spillLogEntryLocal);
 
 oldDr = cd('../../DataSets/');
 save('AllRunSpillLogEntryTimeCycleData','timeCycle');
