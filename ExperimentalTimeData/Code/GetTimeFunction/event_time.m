@@ -28,6 +28,8 @@ cd(oldDr);
 failedRun_g = failed_run_obj.failedRun;
 failedDataLog_g = failed_run_obj.failedDataLog;
 spillLogEntryTime_g = spill_log_obj.spillLogEntryTime;
+spillLogRun_g = spill_log_obj.run;
+spillLogDataLog_g= spill_log_obj.dataLog;
 
 run2011R = data.run2011R;
 st2011R = data.st2011R;
@@ -73,6 +75,14 @@ tobj = public();
 
     function failedDataLog = failedDataLogNumber()
         failedDataLog = failedDataLog_g;
+    end
+
+    function spillLogRun = spillLogRun()
+        spillLogRun = spillLogRun_g;
+    end
+
+    function spillLogDataLog = spillLogDataLog()
+        spillLogDataLog = spillLogDataLog_g;
     end
 
     function spillLogEntryLocal = spillLogEntryTime()
@@ -312,6 +322,8 @@ function type = type(year,RorL,mode)
 
     function o = public()
         o = struct(...
+            'spillLogRun', @spillLogRun,...
+            'spillLogDataLog', @spillLogDataLog,...
             'spillLogEntryLocal', @spillLogEntryTime,...
             'failedRun', @failedRunNumber,...
             'failedDataLog', @failedDataLogNumber,...
