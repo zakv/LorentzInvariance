@@ -23,8 +23,14 @@ oldDr = cd('../../DataSets/');
 data = load('EventTimeData');
 failed_run_obj = load('FailedRunData.mat');
 spill_log_obj = load('spillLogEntryTimeData.mat');
+attempted_run_obj = load('EntryTimeWithEplusCatchData.mat');
+shift_cycle_obj = load('GuessedAttemptedShiftTimeData.mat');
 cd(oldDr);
 
+shiftCycle_g = shift_cycle_obj.shiftCycle;
+attemptedRun_g = attempted_run_obj.run;
+attemptedDataLog_g = attempted_run_obj.dataLog;
+attemptedSpillLogEntryTime_g = attempted_run_obj.spillLogEntryTime;
 failedRun_g = failed_run_obj.failedRun;
 failedDataLog_g = failed_run_obj.failedDataLog;
 spillLogEntryTime_g = spill_log_obj.spillLogEntryTime;
@@ -68,6 +74,22 @@ jd2010L_a = data.jd2010L_a;
 type2010L_a = data.type2010L_a;
  
 tobj = public();
+
+    function shiftCycle = shiftCycleTimes()
+        shiftCycle = shiftCycle_g;
+    end
+
+    function attemptedRun = attemptedRunNumber()
+        attemptedRun = attemptedRun_g;
+    end
+
+    function attemptedDataLog = attemptedDataLogNumber()
+        attemptedDataLog = attemptedDataLog_g;
+    end
+
+    function attemptedSpillLogEntryTime = attemptedSpillLogEntryTime()
+        attemptedSpillLogEntryTime = attemptedSpillLogEntryTime_g;
+    end
 
     function failedRun = failedRunNumber()
         failedRun = failedRun_g;
@@ -322,6 +344,10 @@ function type = type(year,RorL,mode)
 
     function o = public()
         o = struct(...
+            'shiftCycle', @shiftCycleTimes,...
+            'attemptedRun', @attemptedRunNumber,...
+            'attemptedDataLog', @attemptedDataLogNumber,...
+            'attemptedSpillLogEntryTime', @attemptedSpillLogEntryTime,...
             'spillLogRun', @spillLogRun,...
             'spillLogDataLog', @spillLogDataLog,...
             'spillLogEntryLocal', @spillLogEntryTime,...
