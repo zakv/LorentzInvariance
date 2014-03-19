@@ -38,9 +38,6 @@ for i = iMin:iMax
         numberFound=false;
         datePattern='^\s*<td\s*class="list(1|2)"\s*nowrap><a\s*href="\.\./SpillLog/\d*">(Sun|Mon|Tue|Wed|Thu|Fri|Sat)\s*(?<month>(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec))\s*';
         datePattern=strcat(datePattern,'(?<day>\d*)\s*(?<year>\d*),\s*(?<hour>\d*):(?<minute>\d*)</a></td>');
-
-        %datePattern='^\s*(Sun|Mon|Tue|Wed|Thu|Fri|Sat)\s*(?<month>(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec))\s*';
-        %datePattern=strcat(datePattern,'(?<day>\d*)\s*(?<year>\d*),\s*(?<hour>\d*):(?<minute>\d*)\s*\|\s*Run:(?<run>\d*)\s*\|\s*DataLog:(?<datalog>\d*)\s*\|\s*(Pbar\s*Log\s*\|(\s*\[Trapping\])?|Trapping\s*Series\s*\|)\s*(Trapping\s*)?(S|s)eries\s*(?<series>\d*)\s*');
         dateFound=false;
         fileID=fopen(fileName);
         %iterate over lines of html file
