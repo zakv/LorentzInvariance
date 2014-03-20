@@ -2,14 +2,7 @@ function [A] = get_attempted_entry_time(runNumber)
 
 %Returns time of events for a given runNumber.  Looks for files in
 %dataDir,set early in this function.
-%   Gets date from line near "Entry time"
-%   Gets relative time of events from line above the one that starts with
-%   the following: "Run   Event#"
-%   The relative time is calibrated to real time by assuming CsI2
-%   time(real time) is recorded when initial e catch happened(relative time).
-%   If the hour of this calibration time is larger than the hour of the
-%   entry time, then it is assumed that it comes from the day before, and
-%   the "day" parameter given to datenum is adjusted accordingly.
+%   Gets "Entry time"
 
 iMax = numel(runNumber);
 time = zeros(size(runNumber));

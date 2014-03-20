@@ -21,7 +21,21 @@ function tobj = event_time()
 
 oldDr = cd('../../DataSets/');
 data = load('EventTimeData');
+failed_run_obj = load('FailedRunData.mat');
+spill_log_obj = load('spillLogEntryTimeData.mat');
+attempted_run_obj = load('EntryTimeWithEplusCatchData.mat');
+shift_cycle_obj = load('GuessedAttemptedShiftTimeData.mat');
 cd(oldDr);
+
+shiftCycle_g = shift_cycle_obj.shiftCycle;
+attemptedRun_g = attempted_run_obj.run;
+attemptedDataLog_g = attempted_run_obj.dataLog;
+attemptedSpillLogEntryTime_g = attempted_run_obj.spillLogEntryTime;
+failedRun_g = failed_run_obj.failedRun;
+failedDataLog_g = failed_run_obj.failedDataLog;
+spillLogEntryTime_g = spill_log_obj.spillLogEntryTime;
+spillLogRun_g = spill_log_obj.run;
+spillLogDataLog_g= spill_log_obj.dataLog;
 
 run2011R = data.run2011R;
 st2011R = data.st2011R;
@@ -61,6 +75,42 @@ type2010L_a = data.type2010L_a;
  
 tobj = public();
 
+    function shiftCycle = shiftCycleTimes()
+        shiftCycle = shiftCycle_g;
+    end
+
+    function attemptedRun = attemptedRunNumber()
+        attemptedRun = attemptedRun_g;
+    end
+
+    function attemptedDataLog = attemptedDataLogNumber()
+        attemptedDataLog = attemptedDataLog_g;
+    end
+
+    function attemptedSpillLogEntryTime = attemptedSpillLogEntryTime()
+        attemptedSpillLogEntryTime = attemptedSpillLogEntryTime_g;
+    end
+
+    function failedRun = failedRunNumber()
+        failedRun = failedRun_g;
+    end
+
+    function failedDataLog = failedDataLogNumber()
+        failedDataLog = failedDataLog_g;
+    end
+
+    function spillLogRun = spillLogRun()
+        spillLogRun = spillLogRun_g;
+    end
+
+    function spillLogDataLog = spillLogDataLog()
+        spillLogDataLog = spillLogDataLog_g;
+    end
+
+    function spillLogEntryLocal = spillLogEntryTime()
+        spillLogEntryLocal = spillLogEntryTime_g;
+    end
+        
     function run = runNumber(year,RorL,mode)
 
         if mode == 1
@@ -294,6 +344,15 @@ function type = type(year,RorL,mode)
 
     function o = public()
         o = struct(...
+            'shiftCycle', @shiftCycleTimes,...
+            'attemptedRun', @attemptedRunNumber,...
+            'attemptedDataLog', @attemptedDataLogNumber,...
+            'attemptedSpillLogEntryTime', @attemptedSpillLogEntryTime,...
+            'spillLogRun', @spillLogRun,...
+            'spillLogDataLog', @spillLogDataLog,...
+            'spillLogEntryLocal', @spillLogEntryTime,...
+            'failedRun', @failedRunNumber,...
+            'failedDataLog', @failedDataLogNumber,...
             'utc', @utc,...
             'run', @runNumber,...
             'utc_jd', @utc_jd,...
