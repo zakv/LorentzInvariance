@@ -1,0 +1,7 @@
+# Custom ignores
+
+# DataSets - html files #
+################################
+elogData/
+FailedElogData/
+spillLog/
