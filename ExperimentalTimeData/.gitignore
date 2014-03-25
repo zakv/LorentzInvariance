@@ -5,3 +5,11 @@
 elogData/
 FailedElogData/
 spillLog/
+
+# folders with compiled files #
+################################
+HistShiftStartToFirstAndLastRunTime/
+PlotEventTimeHistCDF/
+
+#Should add tex file
+! *.tex
