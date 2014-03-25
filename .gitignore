@@ -4,6 +4,13 @@
 ################################
 EventTime/
 
+
+# DataSets - html files #
+################################
+elogData/
+FailedElogData/
+spillLog/
+
 # Linux generated files #
 #########################
 *.fuse*
