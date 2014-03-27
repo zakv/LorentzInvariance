@@ -2,7 +2,7 @@ function [] = set_for_shift_time_graph(time)
 %Sets plot for time distribution(clock time from 23pm against date)
 
 hold on;
-set(gca, 'YDir','rev')
+set(gca, 'YDir','rev')%plot reversely
 set(gca,'Box','on')
 timeMin = min(time);
 timeMax = max(time);
