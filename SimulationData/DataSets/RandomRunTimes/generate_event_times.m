@@ -47,17 +47,17 @@ n_Hbar_lambda=lambda_event_number();%n_successfulEvents/n_attemptedRuns;
 n_runs_lambda=n_successfulEvents/totalRunSpan;%successful events/attempted runs
 %exponential distribution
 start_estimates_poisson = fit_shifted_poisson(shiftStart_to_firstRun);
-disp(start_estimates_poisson);
 %least square method for Gaussian
 end_estimates_simple = [mean(shiftStart_to_lastRun),std(shiftStart_to_lastRun)];
 end_estimates_gaussian = fit_gaussian(shiftStart_to_lastRun);
-disp(end_estimates_gaussian);
 %disp(end_estimates_gaussian)
 
 %------------generate event times--------------------
 eventTimes=zeros(500,1); %Preallocate
 row_index=1;
 jMax = numel(shiftStart_to_firstRun);
+run_index = 0;
+n_Hbars = zeros(1000,1);
 
 test_n_runs = zeros(jMax,1);
 test_runSpan = zeros(jMax,1);
@@ -86,13 +86,14 @@ for j=1:jMax
     %number of events per each run
     if runSpan > 0 && n_runs >= 1
         for i = 1:n_runs
+            run_index = run_index + 1;
             rand_val = random_generator.rand(1);
             eventTime = first_runTime + runSpan*rand_val;
             rand_val = random_generator.rand(1);
-            n_Hbars = get_n_Hbars(rand_val,n_Hbar_lambda);
-            eventTimes(row_index:row_index+n_Hbars-1) = eventTime;
+            n_Hbars(run_index) = get_n_Hbars(rand_val,n_Hbar_lambda);
+            eventTimes(row_index:row_index+n_Hbars(run_index)-1) = eventTime;
             %Prepare for next iteration
-            row_index=row_index+n_Hbars;
+            row_index=row_index+n_Hbars(run_index);
         end
     end
     test_n_runs(j) = n_runs;
@@ -102,6 +103,8 @@ end
 %Strip unused rows of preallocated array
 used_indices=eventTimes~=0;
 eventTimes=eventTimes(used_indices);
+used_indices=n_Hbars~=0;
+n_Hbars=n_Hbars(used_indices);
 
 
 %-------------plot experimental & simulation data --------------------
@@ -159,10 +162,23 @@ xlabel('day')
 ylabel('Probability')
 legend('experiment','estimates using least squares method')
 
+%plot number of Hbars per run
+f_nHbar_hist = figure;
+n_Hbars_experiment = vertcat(1*ones(261,1),2*ones(53,1),3*ones(5,1),4*ones(1,1));
+x = (1:1:max(max(n_Hbars),4));
+y1 = hist(n_Hbars_experiment,x);
+y2 = hist(n_Hbars,x);
+D = [y1;y2];
+bar(x,D',1.4);
+xlabel('number of events per run');
+ylabel('count');
+legend('experiment','simulation');
+
 saveas(f_first_hist,'first_hist.pdf','pdf');
 saveas(f_first_plot,'first_plot.pdf','pdf');
 saveas(f_end_hist,'end_hist.pdf','pdf');
 saveas(f_end_plot,'end_plot.pdf','pdf');
+saveas(f_nHbar_hist,'nHbar_hist.pdf','pdf');
 
 %---------for CHECK ---write total number of event % run,and run span------
 dispstr = ['total number of run is ',num2str(sum(test_n_runs)),' (experiment:320)'];
@@ -237,4 +253,54 @@ function [mu] = lambda_event_number()
     lambda = successful_eventN./(eventN_0 + successful_runN);
     mu = mean(lambda);
     %sigma = std(lambda);
+end
+
+function [estimates] = fit_shifted_poisson(data)
+%fits shifted poisson distribution by using probability function
+[ydata, xdata] = ecdf(data);
+estimates = fitcurve(xdata, ydata);
+
+    function [estimates] = fitcurve(xdata, ydata)
+    % Call fminsearch with a random starting point.
+    start_point = rand(1, 2);
+    model = @expfun;
+    estimates = fminsearch(model, start_point);
+    % expfun accepts curve parameters as inputs, and outputs sse,
+    % the sum of squares error for exp(-lambda * (xdata - x_0) - ydata, 
+    % and the FittedCurve. FMINSEARCH only needs sse, but we want to 
+    % plot the FittedCurve at the end.
+        function [sse, FittedCurve] = expfun(params)
+            x_0 = params(1);
+            lambda = abs(params(2));
+            FittedCurve = 1 - exp(-lambda * (xdata - x_0));
+            ErrorVector = FittedCurve - ydata;
+            sse = sum(ErrorVector .^ 2);
+        end
+    end
+
+end
+
+function [estimates] = fit_gaussian(data)
+%get estimetes mu, sigma of gaussian distribution by fitting the empirical
+%cdf
+[ydata, xdata] = ecdf(data);
+estimates = abs(fitcurve(xdata, ydata));
+
+    function [estimates] = fitcurve(xdata, ydata)
+    % Call fminsearch with a random starting point.
+    start_point = rand(1, 2);
+    model = @erffun;
+    estimates = fminsearch(model, start_point);
+    % erffun accepts curve parameters as inputs, and outputs sse,
+    % the sum of squares error for 0.5*(1+erf((xdata-mu)/sqrt(2*sigma^2))) - ydata, 
+    % and the FittedCurve. FMINSEARCH only needs sse, but we want to 
+    % plot the FittedCurve at the end.
+        function [sse, FittedCurve] = erffun(params)
+            mu = params(1);
+            sigma = params(2);
+            FittedCurve = 0.5*(1+erf((xdata-mu)/sqrt(2*sigma^2)));
+            ErrorVector = FittedCurve - ydata;
+            sse = sum(ErrorVector .^ 2);
+        end
+    end
 end
