@@ -1,0 +1,34 @@
+# Custom ignores
+
+# temporary ignoring file #
+################################
+/Code/GetTimeFunction/GenerateEventTimeData_2010_matt.m
+
+# DataSets - html files, excel files, etc.. #
+################################
+/DataSets/RawData/elogData/
+/DataSets/RawData/FailedElogData/
+/DataSets/RawData/spillLog/
+/DataSets/RawData/seq_LR/
+/DataSets/RawData/spillLogPage/
+/DataSets/RawData/ExcelFile_old/
+/DataSets/RawData/schedule-shift/
+
+# folders with compiled files #
+################################
+/Code/TimeAnalysisFunction/HistShiftStartToFirstAndLastRunTime/
+/Code/TimeAnalysisFunction/PlotEventTimeHistCDF/
+/Code/TimeAnalysisFunction/PlotShiftAndEventTime_2plots/
+/Code/TimeAnalysisFunction/PlotShiftAndEventTime/
+/Code/TimeAnalysisFunction/PlotTimeDistribution/
+/Code/TimeAnalysisFunction/PlotEventTimeDistribution/
+/Code/TimeAnalysisFunction/PlotAttemptedEntryTimeDistribution/
+
+# personal folder #
+################################
+/Code/TimeAnalysisFunction/CMBvelocity/
+/Code/TimeAnalysisFunction/not_in_use/
+/DataSets/not_in_use/
+
+#Should add tex file
+! *.tex

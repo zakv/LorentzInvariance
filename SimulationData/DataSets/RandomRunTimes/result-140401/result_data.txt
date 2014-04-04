@@ -1,0 +1,3 @@
+total number of run is 312 (experiment:320)
+total run span is 35.3282 (experiment:34.8347)
+total number of event time is 376 (experiment:386)
