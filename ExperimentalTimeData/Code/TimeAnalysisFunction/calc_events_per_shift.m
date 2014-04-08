@@ -1,5 +1,6 @@
 function [count] = calc_events_per_shift()
 %calculate number of successful events per shift cycle
+%Should use calc_events_per_time_cycle.m instead of this function 
 
 oldDir = cd('../../DataSets');
 time_cycle_obj=load('AttemptedStartingTimeCycleData');

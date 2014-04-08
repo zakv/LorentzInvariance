@@ -12,16 +12,24 @@ shiftEndTimeEx = xlsread(readFilename, readSheet, readxlRange);
 shiftEndTime = x2mdate(shiftEndTimeEx);
 cd(oldDir);
 
-shiftCycle = [shiftStTime, shiftEndTime];
+shiftCycle_all = [shiftStTime, shiftEndTime];
 
 %Shift time which had more than one runs with e+ catch
 t = event_time();
 attemptedRunEntryTime = t.attemptedSpillLogEntryTime();
+eventTime = t.local('all','all',0);
+
 oldDir = cd('../TimeAnalysisFunction/');
-attemptedRunsPerShift = calc_events_per_time_cycle(attemptedRunEntryTime,shiftCycle);
+attemptedRunsPerShift = calc_events_per_time_cycle(attemptedRunEntryTime,shiftCycle_all);
+shiftCycle = shiftCycle_all(attemptedRunsPerShift(:,1)>=1,:);
+%Should be >=1 run, otherwise this excludes the shift which has only one
+%run which is successful.
+count_first_last = calc_events_per_time_cycle(eventTime,shiftCycle_all);
+n_eventsPerShift = count_first_last(:,1);
+successfulShiftCycle = shiftCycle_all(n_eventsPerShift>0,:);
 cd(oldDir);
-shiftCycle = shiftCycle(attemptedRunsPerShift(:,1)>=2,:);%Should it be from 1 or 2?
 
 oldDir = cd('../../DataSets/');
 save('GuessedAttemptedShiftTimeData','shiftCycle');
+save('GuessedSuccessfulShiftTimeData','successfulShiftCycle');
 cd(oldDir);

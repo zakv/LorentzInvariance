@@ -174,11 +174,19 @@ xlabel('number of events per run');
 ylabel('count');
 legend('experiment','simulation');
 
+%plot events time diagram
+oldDir = cd('../../../ExperimentalTimeData/Code/TimeAnalysisFunction/');
+f_events_diagram = figure;
+plot_time_from_0am(eventTimes);
+set_for_time_graph();
+cd(oldDir);
+
 saveas(f_first_hist,'first_hist.pdf','pdf');
 saveas(f_first_plot,'first_plot.pdf','pdf');
 saveas(f_end_hist,'end_hist.pdf','pdf');
 saveas(f_end_plot,'end_plot.pdf','pdf');
 saveas(f_nHbar_hist,'nHbar_hist.pdf','pdf');
+saveas(f_events_diagram,'eventTimes_diagram.pdf','pdf');
 
 %---------for CHECK ---write total number of event % run,and run span------
 dispstr = ['total number of run is ',num2str(sum(test_n_runs)),' (experiment:320)'];
@@ -228,15 +236,13 @@ function[n_Runs] = get_n_runs(rand_val,timeSpan,lambda)
 
 probability=@(n) (lambda*timeSpan)^n*exp(-lambda*timeSpan)/factorial(n);
 
-n=0;
+n_Runs=0;
 p_sum = probability(0);
 
 while p_sum < rand_val
-    n = n+1;
-    p_sum = p_sum + probability(n);
+    n_Runs = n_Runs+1;
+    p_sum = p_sum + probability(n_Runs);
 end
-
-n_Runs = n;
 end
 
 function [mu] = lambda_event_number()

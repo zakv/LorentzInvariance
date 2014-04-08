@@ -26,6 +26,7 @@ for j = 1:jMax
     count_first_last(j,:) = [count(j),firstEventTime(j),lastEventTime(j)];
 end
 
+%check times which are out of shift cycle
 %{
 for i = 1:iMax
     if shiftFound(i) == false
