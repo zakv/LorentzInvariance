@@ -25,8 +25,10 @@ failed_run_obj = load('FailedRunData.mat');
 spill_log_obj = load('spillLogEntryTimeData.mat');
 attempted_run_obj = load('EntryTimeWithEplusCatchData.mat');
 shift_cycle_obj = load('GuessedAttemptedShiftTimeData.mat');
+successful_shift_cycle_obj = load('GuessedSuccessfulShiftTimeData.mat');
 cd(oldDr);
 
+successfulShiftCycle_g = successful_shift_cycle_obj.successfulShiftCycle;
 shiftCycle_g = shift_cycle_obj.shiftCycle;
 attemptedRun_g = attempted_run_obj.run;
 attemptedDataLog_g = attempted_run_obj.dataLog;
@@ -74,6 +76,10 @@ jd2010L_a = data.jd2010L_a;
 type2010L_a = data.type2010L_a;
  
 tobj = public();
+
+    function successfulShiftCycle = successfulShiftCycleTimes()
+        successfulShiftCycle = successfulShiftCycle_g;
+    end
 
     function shiftCycle = shiftCycleTimes()
         shiftCycle = shiftCycle_g;
@@ -344,6 +350,7 @@ function type = type(year,RorL,mode)
 
     function o = public()
         o = struct(...
+            'successfulShiftCycle', @successfulShiftCycleTimes,...
             'shiftCycle', @shiftCycleTimes,...
             'attemptedRun', @attemptedRunNumber,...
             'attemptedDataLog', @attemptedDataLogNumber,...
