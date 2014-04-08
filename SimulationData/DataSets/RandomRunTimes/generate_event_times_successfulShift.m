@@ -1,11 +1,11 @@
 function [eventTimes] = generate_event_times_successfulShift(random_generator)
 %running 10000 times:
-%number of events 391.9361+-26.3308
-%number of runs   323.484+-20.5068
-%time span        35.0812+-1.0816
+%number of events 376.3327+-22.4525
+%number of runs   310.5493+-17.2484
+%time span        24.2584+-0.46389
 %
 %[Experiment]
-%eventN=386, runN=320, runSpan=34.8347
+%eventN=386, runN=320, runSpan=26.0125
 
 %Returns a column vector of event times in UTC time chosen to be Poisson or
 %Gaussian.
@@ -37,20 +37,22 @@ runs_cycle = calc_events_per_time_cycle(attemptedRunTime,shiftCycle);
 totalRunSpan = calc_total_time_of_cycles(runs_cycle(:,2:3));
 cd(oldDir);
 
-n_successfulEvents = numel(unique(successfulEventTime)); %320
+n_successfulRuns = numel(unique(successfulEventTime)); %320
 shiftStart_to_firstRun = runs_cycle(:,2) - shiftCycle(:,1);
 shiftStart_to_lastRun = runs_cycle(:,3) - shiftCycle(:,1);
 
 %--------calculates estimetes-----------------
 %Poisson process
-n_Hbar_lambda=lambda_event_number();%n_successfulEvents/n_attemptedRuns;
-n_runs_lambda=n_successfulEvents/totalRunSpan;%successful events/attempted runs
+n_Hbar_lambda=0.39759;%lambda_event_number();
+n_runs_lambda=n_successfulRuns/totalRunSpan;
+%disp(n_Hbar_lambda);
 %exponential distribution
-start_estimates_poisson = fit_shifted_poisson(shiftStart_to_firstRun);
+start_estimates_poisson = [0.0207809, 20.8910];%fit_shifted_poisson(shiftStart_to_firstRun);
+%disp(start_estimates_poisson);
 %least square method for Gaussian
 end_estimates_simple = [mean(shiftStart_to_lastRun),std(shiftStart_to_lastRun)];
-end_estimates_gaussian = fit_gaussian(shiftStart_to_lastRun);
-%disp(end_estimates_gaussian)
+end_estimates_gaussian = [0.3412, 0.01033];%fit_gaussian(shiftStart_to_lastRun);
+%disp(end_estimates_gaussian);
 
 %------------generate event times--------------------
 eventTimes=zeros(500,1); %Preallocate
@@ -105,7 +107,6 @@ used_indices=eventTimes~=0;
 eventTimes=eventTimes(used_indices);
 used_indices=n_Hbars~=0;
 n_Hbars=n_Hbars(used_indices);
-
 
 %-------------plot experimental & simulation data --------------------
 %plot time from when first run starts to when last run ends
@@ -188,14 +189,17 @@ saveas(f_end_plot,'end_plot.pdf','pdf');
 saveas(f_nHbar_hist,'nHbar_hist.pdf','pdf');
 saveas(f_events_diagram,'eventTimes_diagram.pdf','pdf');
 
+
 %---------for CHECK ---write total number of event % run,and run span------
 dispstr = ['total number of run is ',num2str(sum(test_n_runs)),' (experiment:320)'];
 disp(dispstr);
-dispstr = ['total run span is ',num2str(sum(test_runSpan)),' (experiment:34.8347)'];
+dispstr = ['total run span is ',num2str(sum(test_runSpan)),' (experiment:26.0125)'];
 disp(dispstr);
 dispstr = ['total number of event time is ',num2str(numel(eventTimes)),' (experiment:386)'];
 disp(dispstr);
 
+%-------for iteration----------
+%iterationData = [numel(eventTimes),sum(test_n_runs),sum(test_runSpan)];
 end
 
 function [time] = get_occurrence_time(rand_val,t_0,time_lambda)
@@ -246,10 +250,11 @@ while p_sum < rand_val_scaled
 end
 end
 
+%{
 function [mu] = lambda_event_number()
  %Poisson estimate for number of events per run including about 651 +-12
  % unsuccessful trials predicted. 386 events(320 runs) occured.
-    iterationNumber = 100000;
+    iterationNumber = 10000000;
     failed_runN = 651;
     failed_runN_std = 12;
     successful_eventN = 386; %old version:312 
@@ -311,3 +316,4 @@ estimates = abs(fitcurve(xdata, ydata));
         end
     end
 end
+%}
