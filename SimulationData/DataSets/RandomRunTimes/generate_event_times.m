@@ -283,7 +283,9 @@ estimates = fitcurve(xdata, ydata);
             sse = sum(ErrorVector .^ 2);
         end
     end
-
+%-------for iteration----------
+%    fprintf(fileID,'%d %d
+%    %.8f\n',numel(eventTimes),sum(test_n_runs),sum(test_runSpan));
 end
 
 function [estimates] = fit_gaussian(data)
