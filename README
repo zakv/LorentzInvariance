@@ -5,6 +5,7 @@ Plots to make:
   *Plot of CMB velocity over time of year.  Maybe trap angle as
    well
   *Histograms for various distributions used to pick event times
+  *Plots of z-position CDFs used for interpolation
   *Plot with time of day on y-axis and date on y-axis with blocks
     showing when the experiment was running, both for real data
     and for a random generated one.
