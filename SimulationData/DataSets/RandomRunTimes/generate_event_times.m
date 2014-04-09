@@ -251,18 +251,15 @@ end
 %{
 function [mu] = lambda_event_number()
  %Poisson estimate for number of events per run including about 651 +-12
- % unsuccessful trials predicted. 386 events(320 runs) occured.
+ % unsuccessful trials predicted. 386 successful events(320 runs) occured.
     iterationNumber = 100000;
     failed_runN = 651;
     failed_runN_std = 12;
-    successful_eventN = 386; %old version:312 
-    successful_runN = 320; %old version:264
-    %eventN_0 = 651 + 12.*randn(iterationNumber,1);
-    %lambda = 312./(eventN_0 + 264);
+    successful_eventN = 386;
+    successful_runN = 320; 
     eventN_0 = failed_runN + failed_runN_std.*randn(iterationNumber,1);
     lambda = successful_eventN./(eventN_0 + successful_runN);
     mu = mean(lambda);
-    %sigma = std(lambda);
 end
 
 function [estimates] = fit_shifted_poisson(data)
