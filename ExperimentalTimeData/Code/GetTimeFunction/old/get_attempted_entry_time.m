@@ -1,26 +1,22 @@
-function [A] = get_spillLogPage_entry_time()
+function [A] = get_attempted_entry_time(runNumber)
+%   Gets Entry time,run number, datalog number, series series number for a
+%   given runNumber.Looks for files in dataDir and pick up all runs'
+%   information written in the elog data.
 
-%Returns time of events for a given runNumber.  Looks for files in
-%dataDir,set early in this function.
-%   Gets "Entry time"
-% returns [time, run, datalog];
-
-
-iMin = 142;
-iMax = 426;
+iMax = numel(runNumber);
+time = zeros(size(runNumber));
 totalLength = 0;
 Alength = 10000;
-A = zeros(Alength,3);
+A = zeros(Alength,4);
 
-for i = iMin:iMax
+for i = 1:iMax
     
-    dataDir='../../DataSets/RawData/spillLogPage';
+    dataDir='../../DataSets/RawData/elogData';
     
     %figure out html file name from runNumber
-    fileNamePattern=strcat('(^page)',int2str(i),'.html');
+    fileNamePattern=strcat('(^run_|^)',int2str(runNumber(i)),'_\d*.html');
     dirList=dir(dataDir);
     fileNameFound=false;
-    
     for j=1:length(dirList)
         if ~isempty(regexp(dirList(j).name,fileNamePattern,'match'))
             fileName=fullfile(dataDir,dirList(j).name);
@@ -29,36 +25,29 @@ for i = iMin:iMax
     end
 
     if fileNameFound==false
-        dispString=strcat('Failed to find file for page=', ...
-                              int2str(i));
+        dispString=strcat('Failed to find file for runNumber=', ...
+                              int2str(runNumber(i)));
                           disp(dispString);
+                          time(i)=NaN;
     else
         %regex the necessary stuff
-        numberPattern='\.\./SpillLog/(?<datalog>\d*)">(?<run>\d*)</a></td>\s*$';
-        numberFound=false;
-        datePattern='^\s*<td\s*class="list(1|2)"\s*nowrap><a\s*href="\.\./SpillLog/\d*">(Sun|Mon|Tue|Wed|Thu|Fri|Sat)\s*(?<month>(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec))\s*';
-        datePattern=strcat(datePattern,'(?<day>\d*)\s*(?<year>\d*),\s*(?<hour>\d*):(?<minute>\d*)</a></td>');
+        datePattern='^\s*(Sun|Mon|Tue|Wed|Thu|Fri|Sat)\s*(?<month>(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec))\s*';
+        datePattern=strcat(datePattern,'(?<day>\d*)\s*(?<year>\d*),\s*(?<hour>\d*):(?<minute>\d*)\s*\|\s*Run:(?<run>\d*)\s*\|\s*DataLog:(?<datalog>\d*)\s*\|\s*(Pbar\s*Log\s*\|(\s*\[Trapping\])?|Trapping\s*Series\s*\|)\s*(Trapping\s*)?(S|s)eries\s*(?<series>\d*)\s*');
         dateFound=false;
         fileID=fopen(fileName);
         %iterate over lines of html file
         lineText=fgetl(fileID);
-        runIndex = 100;
-        time = zeros(runIndex,1);
-        run = zeros(runIndex,1);
-        datalog = zeros(runIndex,1);
+        run = zeros(100,1);
+        datalog = zeros(100,1);
+        series = zeros(100,1);           
         j=0;
         
-        B = zeros(runIndex,3);
+        B = zeros(100,4);
         
         while ischar(lineText)
-            if ~isempty(regexp(lineText,numberPattern,'once'))
-                numberFound=1;
-                j=j+1;
-                numberMatch=regexp(lineText,numberPattern,'names','once');
-                run(j)=str2double(numberMatch.run);
-                datalog(j)=str2double(numberMatch.datalog);
-            elseif ~isempty(regexp(lineText,datePattern, 'once'))
+            if ~isempty(regexp(lineText,datePattern, 'once'))
                 dateFound=1;
+                j=j+1;
                 dateMatch=regexp(lineText,datePattern,'names','once');
                 %disp(dateMatch);
                 year=str2double(dateMatch.year);
@@ -90,22 +79,20 @@ for i = iMin:iMax
                 day=str2double(dateMatch.day);
                 hour=str2double(dateMatch.hour);
                 minute=str2double(dateMatch.minute);
+                run(j)=str2double(dateMatch.run);
+                datalog(j)=str2double(dateMatch.datalog);
+                series(j)=str2double(dateMatch.series);
                 time(j)=datenum(year,month,day,hour,minute,0);
-                C = [time(j),run(j),datalog(j)];
+                C = [time(j),run(j),datalog(j),series(j)];
                 B(j,:) = C;
             end
             lineText=fgetl(fileID);
         end
         fclose(fileID);
         
-        if ~numberFound
-            dispString=strcat('Failed to find run%dataLog number for pare',...
-                int2str(i));
-            disp(dispString);
-        end
         if ~dateFound
-            dispString=strcat('Failed to find date for page', ...
-                              int2str(i));
+            dispString=strcat('Failed to find date for runNumber=', ...
+                              int2str(runNumber(i)));
             disp(dispString);
         end
         totalLength = totalLength + j;

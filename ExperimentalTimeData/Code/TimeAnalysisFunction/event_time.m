@@ -21,7 +21,6 @@ function tobj = event_time()
 
 oldDr = cd('../../DataSets/');
 data = load('EventTimeData');
-failed_run_obj = load('FailedRunData.mat');
 spill_log_obj = load('spillLogEntryTimeData.mat');
 attempted_run_obj = load('EntryTimeWithEplusCatchData.mat');
 shift_cycle_obj = load('GuessedAttemptedShiftTimeData.mat');
@@ -33,8 +32,6 @@ shiftCycle_g = shift_cycle_obj.shiftCycle;
 attemptedRun_g = attempted_run_obj.run;
 attemptedDataLog_g = attempted_run_obj.dataLog;
 attemptedSpillLogEntryTime_g = attempted_run_obj.spillLogEntryTime;
-failedRun_g = failed_run_obj.failedRun;
-failedDataLog_g = failed_run_obj.failedDataLog;
 spillLogEntryTime_g = spill_log_obj.spillLogEntryTime;
 spillLogRun_g = spill_log_obj.run;
 spillLogDataLog_g= spill_log_obj.dataLog;
@@ -95,14 +92,6 @@ tobj = public();
 
     function attemptedSpillLogEntryTime = attemptedSpillLogEntryTime()
         attemptedSpillLogEntryTime = attemptedSpillLogEntryTime_g;
-    end
-
-    function failedRun = failedRunNumber()
-        failedRun = failedRun_g;
-    end
-
-    function failedDataLog = failedDataLogNumber()
-        failedDataLog = failedDataLog_g;
     end
 
     function spillLogRun = spillLogRun()
@@ -358,8 +347,6 @@ function type = type(year,RorL,mode)
             'spillLogRun', @spillLogRun,...
             'spillLogDataLog', @spillLogDataLog,...
             'spillLogEntryLocal', @spillLogEntryTime,...
-            'failedRun', @failedRunNumber,...
-            'failedDataLog', @failedDataLogNumber,...
             'utc', @utc,...
             'run', @runNumber,...
             'utc_jd', @utc_jd,...

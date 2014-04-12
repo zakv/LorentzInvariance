@@ -1,12 +1,4 @@
 function [eventTimes] = generate_event_times_successfulShift(random_generator)
-%running 10000 times:
-%number of events 376.3327+-22.4525
-%number of runs   310.5493+-17.2484
-%time span        24.2584+-0.46389
-%
-%[Experiment]
-%eventN=386, runN=320, runSpan=26.0125
-
 %Returns a column vector of event times in UTC time chosen to be Poisson or
 %Gaussian.
 %distributed over the estimated times during which the experiment was
@@ -20,6 +12,14 @@ function [eventTimes] = generate_event_times_successfulShift(random_generator)
 % decide number of successful run (>=1) during the time span - poisson
 % decide time of successful run - random
 % decide number of events for each successful run - poisson
+
+%running 10000 times:
+%number of events 376.3327+-22.4525
+%number of runs   310.5493+-17.2484
+%time span        24.2584+-0.46389
+%
+%[Experiment]
+%eventN=386, runN=320, runSpan=26.0125
 
 
 %-------------get experimental data-------------

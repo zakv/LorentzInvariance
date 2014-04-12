@@ -1,4 +1,7 @@
-%Generate entry time data
+%Generate attempted (only those written in the elog data nearby the run
+%number) run's entry data. This gets inadequate data. If you want to get
+%all attempted data, you should you Entry time data taken from spillLog
+%files.
 %
 %   MEMO : Failed to find date for runNumber=21822,25888
 %   entryTimes, entryTimes2010, entryTimes2011 are sorted

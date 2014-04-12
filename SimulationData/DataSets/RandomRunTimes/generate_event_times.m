@@ -1,12 +1,4 @@
 function [eventTimes] = generate_event_times(random_generator)
-%running 10000 times:
-%number of events 408.5744+-26.814
-%number of runs   337.1151+-20.962
-%time span        36.4708+-1.1825
-%
-%[Experiment]
-%eventN=386, runN=320, runSpan=34.8347
-
 %Returns a column vector of event times in UTC time chosen to be Poisson or
 %Gaussian.
 %distributed over the estimated times during which the experiment was
@@ -21,15 +13,23 @@ function [eventTimes] = generate_event_times(random_generator)
 % decide time of successful run - random
 % decide number of events for each successful run - poisson
 
+%running 10000 times:
+%number of events 408.5744+-26.814
+%number of runs   337.1151+-20.962
+%time span        36.4708+-1.1825
+%
+%[Experiment]
+%eventN=386, runN=320, runSpan=34.8347
+
 
 %-------------get experimental data-------------
 oldDir = cd('../../../ExperimentalTimeData/Code/TimeAnalysisFunction');
 %gets time information
 t = event_time();
 shiftCycle = t.shiftCycle();
-shiftCycle = st2utc_ch(shiftCycle);% to utc
+shiftCycle = st2utc_ch(shiftCycle);% convert to utc
 attemptedRunTime = t.attemptedSpillLogEntryTime();
-attemptedRunTime = st2utc_ch(attemptedRunTime);% to utc
+attemptedRunTime = st2utc_ch(attemptedRunTime);%convert to utc
 successfulEventTime = t.utc('all','all',0);
 
 %prepare data
