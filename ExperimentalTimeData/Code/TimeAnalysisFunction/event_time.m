@@ -22,7 +22,7 @@ function tobj = event_time()
 oldDr = cd('../../DataSets/');
 data = load('EventTimeData');
 spill_log_obj = load('spillLogEntryTimeData.mat');
-attempted_run_obj = load('EntryTimeWithEplusCatchData.mat');
+attempted_run_obj = load('EntryTimeWithEplusCatchData_old.mat');
 shift_cycle_obj = load('GuessedAttemptedShiftTimeData.mat');
 successful_shift_cycle_obj = load('GuessedSuccessfulShiftTimeData.mat');
 cd(oldDr);
