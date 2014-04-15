@@ -3,13 +3,13 @@ function [] = set_for_time_graph()
 
 hold on
 set(gca, 'YDir','rev')
-datetick('x','yy/mm/dd')
+datetick('x','mmm yy','keeplimits')
 ylim([0,24])
 
 set(gca,'YTick',0:8:24)
-set(gca,'YTickLabel',{'0','8','16','24'})
+set(gca,'YTickLabel',{'0:00','8:00','16:00','24:00'})
 xlabel('Date')
-ylabel('UTC [hour]')
+ylabel('Coordinated Universal Time')
 
 end
 
