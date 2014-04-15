@@ -13,11 +13,26 @@ function [eventTimes] = generate_event_times(random_generator)
 % decide time of successful run - random
 % decide number of events for each successful run - poisson
 
-%running 10000 times:
+%running 10000 times using simple estimate for number of events
+% & fit for lastRunTime:
 %number of events 408.5744+-26.814
 %number of runs   337.1151+-20.962
 %time span        36.4708+-1.1825
 %
+%running 10000 times using maximum likelihood estimate for n_events
+% & fit for lastRunTime  :
+%number of events 406.6437+-26.6484
+%number of runs   337.1437+-20.9812
+%time span        36.4817+-1.1865
+
+%running 10000 times using maximum likelihood estimate for n_events
+% & median and MAD for lastRunTime :
+%number of events 399.299+-25.9201
+%number of runs   331.0896+-20.2349
+%time span        35.8855+-1.0176
+
+
+
 %[Experiment]
 %eventN=386, runN=320, runSpan=34.8347
 
@@ -43,15 +58,23 @@ shiftStart_to_lastRun = runs_cycle(:,3) - shiftCycle(:,1);
 
 %--------calculates estimetes-----------------
 %Poisson process
-n_Hbar_lambda=0.39759;%lambda_event_number();
+n_Hbar_lambda=0.387532;%maximum likelihood estimate
 %disp(n_Hbar_lambda);
 n_runs_lambda=n_successfulRuns/totalRunSpan;
 %exponential distribution
 start_estimates_poisson = [0.0176038, 13.1318];%fit_shifted_poisson(shiftStart_to_firstRun);
 %disp(start_estimates_poisson);
-%least square method for Gaussian
-end_estimates_simple = [mean(shiftStart_to_lastRun),std(shiftStart_to_lastRun)];
-end_estimates_gaussian = [0.3435, 0.06132];%fit_gaussian(shiftStart_to_lastRun);
+
+%least square fitting the empirical CDF
+%end_estimates_gaussian = [0.3435, 0.06132];%fit_gaussian(shiftStart_to_lastRun);
+
+%using mean and std
+%end_estimates_gaussian = [0.336862, 0.117645];
+%    [mean(shiftStart_to_lastRun), std(shiftStart_to_lastRun)];
+
+%using median MAD(median absolute deviation)
+end_estimates_gaussian = [0.339583, 0.0350058];
+%   [median(shiftStart_to_lastRun), 1.4826*mad(shiftStart_to_lastRun,1)];
 %disp(end_estimates_gaussian);
 
 %------------generate event times--------------------
@@ -65,12 +88,9 @@ test_n_runs = zeros(jMax,1);
 test_runSpan = zeros(jMax,1);
 shiftStart_to_firstRun_sim = zeros(jMax,1);
 shiftStart_to_lastRun_sim = zeros(jMax,1);
-shiftStart_to_lastRun_simple = zeros(jMax,1);
+%shiftStart_to_lastRun_simple = zeros(jMax,1);
 for j=1:jMax
     %for check
-    rand_val1 = random_generator.rand(1);
-    rand_val2 = random_generator.rand(1);
-    shiftStart_to_lastRun_simple(j) = get_normal_dis_time(rand_val1,rand_val2,end_estimates_simple(1),end_estimates_simple(2));
     %T1) calculates time when first run ends
     rand_val = random_generator.rand(1);
     shiftStart_to_firstRun_sim(j) = get_occurrence_time(rand_val,start_estimates_poisson(1),start_estimates_poisson(2));
@@ -140,8 +160,7 @@ f_end_hist = figure;
 x = (0:0.05:1);
 y1 = hist(shiftStart_to_lastRun,x); 
 y2 = hist(shiftStart_to_lastRun_sim,x);
-%y3 = hist(shiftStart_to_lastRun_simple,x);
-D = [y1;y2];%[y1;y2;y3];
+D = [y1;y2];
 bar(x,D',1.4);
 xlim([0 0.8]);
 xlabel('day')
@@ -151,11 +170,8 @@ title('time from when shift starts to when last run ends');
 %empirical CDF
 f_end_plot = figure;
 [y_ecdf, x_ecdf] = ecdf(shiftStart_to_lastRun);
-%cdfdata = normcdf(x,end_estimates_simple(1),end_estimates_simple(2));
 cdfdata_ls = normcdf(x,end_estimates_gaussian(1),end_estimates_gaussian(2));
 plot(x_ecdf,y_ecdf,'b')
-%hold on
-%plot(x,cdfdata,'g')
 hold on
 plot(x,cdfdata_ls,'r')
 xlim([0 0.8]);
@@ -249,20 +265,7 @@ end
 end
 
 %{
-function [mu] = lambda_event_number()
- %Poisson estimate for number of events per run including about 651 +-12
- % unsuccessful trials predicted. 386 successful events(320 runs) occured.
-    iterationNumber = 100000;
-    failed_runN = 651;
-    failed_runN_std = 12;
-    successful_eventN = 386;
-    successful_runN = 320; 
-    eventN_0 = failed_runN + failed_runN_std.*randn(iterationNumber,1);
-    lambda = successful_eventN./(eventN_0 + successful_runN);
-    mu = mean(lambda);
-end
-
-function [estimates] = fit_shifted_poisson(data)
+%{function [estimates] = fit_shifted_poisson(data)
 %fits shifted poisson distribution by using probability function
 [ydata, xdata] = ecdf(data);
 estimates = fitcurve(xdata, ydata);
