@@ -59,23 +59,19 @@ shiftStart_to_lastRun = runs_cycle(:,3) - shiftCycle(:,1);
 %--------calculates estimetes-----------------
 %Poisson process
 n_Hbar_lambda=0.387532;%maximum likelihood estimate
-%disp(n_Hbar_lambda);
+
 n_runs_lambda=n_successfulRuns/totalRunSpan;
 %exponential distribution
 start_estimates_poisson = [0.0176038, 13.1318];%fit_shifted_poisson(shiftStart_to_firstRun);
-%disp(start_estimates_poisson);
 
-%least square fitting the empirical CDF
+%1)least square fitting the empirical CDF
 %end_estimates_gaussian = [0.3435, 0.06132];%fit_gaussian(shiftStart_to_lastRun);
-
-%using mean and std
+%2)using mean and std
 %end_estimates_gaussian = [0.336862, 0.117645];
 %    [mean(shiftStart_to_lastRun), std(shiftStart_to_lastRun)];
-
-%using median MAD(median absolute deviation)
+%3)using median MAD(median absolute deviation)
 end_estimates_gaussian = [0.339583, 0.0350058];
 %   [median(shiftStart_to_lastRun), 1.4826*mad(shiftStart_to_lastRun,1)];
-%disp(end_estimates_gaussian);
 
 %------------generate event times--------------------
 eventTimes=zeros(500,1); %Preallocate
@@ -88,9 +84,8 @@ test_n_runs = zeros(jMax,1);
 test_runSpan = zeros(jMax,1);
 shiftStart_to_firstRun_sim = zeros(jMax,1);
 shiftStart_to_lastRun_sim = zeros(jMax,1);
-%shiftStart_to_lastRun_simple = zeros(jMax,1);
+
 for j=1:jMax
-    %for check
     %T1) calculates time when first run ends
     rand_val = random_generator.rand(1);
     shiftStart_to_firstRun_sim(j) = get_occurrence_time(rand_val,start_estimates_poisson(1),start_estimates_poisson(2));
