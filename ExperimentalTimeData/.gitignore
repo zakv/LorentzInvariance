@@ -28,7 +28,7 @@
 ################################
 /Code/TimeAnalysisFunction/CMBvelocity/
 /Code/TimeAnalysisFunction/not_in_use/
-/DataSets/not_in_use/
+/DataSets/old/
 
 #Should add tex file
 ! *.tex
