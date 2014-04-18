@@ -11,9 +11,7 @@
 \maketitle
 
 \chapter*{Preface}
-This file is intended to act as a manual for all of the code used for the Lorentz Invariance investigations.  It is a work in progress and you should feel free to edit it.  When working on it, edit a local copy on your machine (not saved in your Dropbox folder) so that if anyone's work gets overwritten, they still have a copy of it.  When you add a section, make sure you add it to the most recent version so it includes all the latest additions.
-
-I'm not sure what the best way to organize this document is, but for now I think it will suffice to make a new chapter for each category of functions (parsing elogs, calculating positions of heavenly bodies, etc.), each of which should have its own folder in the Dropbox.  Within each chapter, create a section for each function that describes its inputs, outputs, algorithm, example usage, and compilation instructions if necessary.  We should also develop some kind of naming scheme (for example camelCase or names\_with\_underscores) at least for function names, and ideally for code within functions.  This should also be recorded here.
+This file is intended to act as a manual for all of the code used for the Lorentz Invariance investigations.  It is a work in progress and you should feel free to edit it.  The version tracking is performed by git and you may download this software from Github.  The Github repository is private, so send Zak an email at uphgreat@gmail.com containing your Github username if you would like access.
 
 \tableofcontents
 
@@ -21,16 +19,14 @@ I'm not sure what the best way to organize this document is, but for now I think
 
 %Here we start the real documentation
 \chapter{Analysis Class}
-The analysis class is designed to allow the user to perform all the high level tasks necessary for the analysis.  Each analysis instance is designed to work with one generate\_event\_times() function (since we expect to pick one and stick with it in the end).  This class inherits from Matlab's handle class, so references to it act like pointers.  As of this writing, the code is still in development, so in the interest of time, it does not run on the full tracer data set by default.  Instead, it only uses the data in LargeSimData.met by default.  To switch use all of the tracer data, run analysis.set\_tracer\_file('all') after initializing your Analysis instance and before generating the raw\_data\_sets.
-
-The examples in this section were run on the data from LargeSimData.mat, so don't be surprised if you are working with AllSimData.mat and the function take much longer to run.
+The analysis class is designed to allow the user to perform all the high level tasks necessary for the analysis, so if you want to use the code but don't want to read this whole lengthy manual, just read through this chapter.  Each analysis instance is designed to work with one generate\_event\_times() function (since we expect to pick one and stick with it in the end).  This class inherits from Matlab's handle class, so references to it act like pointers.
 
 \section{Set-up/Initialization}
-The first step to create an Analysis instance is to create a directory in SimulationData/DataSets/.  The name of this directory will be used to identify the generate\_event\_times() function, so give it a name that describes how that function picks times.  For example, the first one I made randomly picks times over a four month period, so I created a directory and called it FourMonth.  Place the associated version of generate\_event\_times.m in this directory and make sure no other versions of that function appear in your path.
+The first step to create an Analysis instance is to decide which generate\_event\_times() function you would like to use.  Several versions are included in the code, each one residing in its own subdirectory of SimulationData/DataSets/.  The names of the subdirectories are used to identify the different versions of that function.  You may add your own version in its own subdirectory there if you desire.  Make sure no functions with the name generate\_event\_times() are available in your path; that will disrupt the inner workings of the Analysis class and cause it to throw an error.  The Analysis class will automatically add the appropriate directories to the path variable when an instance is created.
 
 Now you are ready to initialize an instance of this class.  To do this, change to the directory\footnote{The paths used internally are relative to SimulationData/code, so make sure this is your working directory; do not just add it to your path} SimulationData/code/.  Now call the constructor with the name of the generate\_event\_times.m folder as the only argument (just the name of the folder, not the path to it) as shown below.  This will automatically create the subdirectories necessary and will warn you if there are issues.
 
-Since the whole analysis process can take a long time, a lot of results are saved to the hard drive so that future instances of the Analysis class can have the results without having to recalculate them.  Therefore, if you've already run an analysis, you can get a lot of the data back just be creating another Analysis instance for the same folder and using its load functions (which are automatically called internally most of the time).
+Since the whole analysis process can take a long time, a lot of results are saved to the hard drive so that future instances of the Analysis class can have the results without having to recalculate them.  Therefore, if you've already run an analysis, you can get a lot of the data back just be creating another Analysis instance for the same folder and using its load functions (which are automatically called when you create the instance for the important data).
 
 \begin{verbatim}
 >> four_month=Analysis('FourMonth')
@@ -40,12 +36,15 @@ four_month =
   Analysis with properties:
 
        GENERATOR_NAME: 'FourMonth'
-     tracer_file_name: '../../TracerOutput/LargeSimDataSorted.mat'
-    signal_group_list: {[1x1 Signal_Group]  [1x1 Signal_Group]}
+    signal_group_list: {1x6 cell}
+            n_workers: []
         data_set_root: '../../DataSets/FourMonth'
+
 \end{verbatim}
 
 \section{Running the Analysis}
+Running the analysis is a two-step process.  First, tell the the analysis instance what kind of signals you would like it to simulate.  The easiest way to do this is to use Analysis.simple\_add\_sine().  This function takes at least one argument: the amplitude of the fractional charge variation, which should be on the order of ~$\sim 1 \times 10^{-8}$.  You may optionally also specify 'period', 'phase', or 'n\_sets'.
+
 Running the analysis is a two-step process.  First, add the desired signal\_group instances to the analysis instance by using the analysis.add\_signal\_group() method.  The method requires a function handle as an input, and you can optionally also pass it a string, which sets the signal\_group's signal\_name attribute, and/or a number, which tells it how many data sets to generate.  The function handle should be a function which takes a data\_set and modifies it to add a signal to the raw data.  Two such functions are included: signal\_null() and signal\_sine().  By default, two signal\_groups are added when you create an analysis instance, one for each of these.  You may also want to add other signal\_sine groups with different amplitudes, frequencies, or phases.  You may remove a signal\_group by using the analysis.delete\_signal\_group() method, which takes a signal\_name, or by using analysis.pop\_signal\_group() which deletes the most recently added signal\_group.
 
 Once the desired signal groups are added, the data for all the various signal groups can be generated simply by calling analysis.run().  This will create all the data\_sets, use Andy's Charman IV algorithm on them, store the results, and generate a nice histogram showing the results of the first and last signal\_groups.
