@@ -94,13 +94,16 @@ classdef Analysis < handle
             %with the given amplitude
             %   The amplitude is the maximum fractional charge and the
             %   signal_group generated has a name of the form "%d daily
-            %   sine'.  You may also specify n_sets by passing it as an
-            %   additional argument.
+            %   sine'. 
+            %   Optionally 'period', 'phase', and 'n_sets' can be specified
+            %   using key-value pairs.  'period' can either be 'day',
+            %   'year', or a float giving the period in matlab days.
+            %   'phase'
             
             %Default arguments:
             period='day';
             phase=0;
-            n_sets=0; %if n_sets>=0, this will let self.add_signal_group choose the default
+            n_sets=0; %if n_sets<=0, this will let self.add_signal_group choose the default
             jMax=length(varargin);
             j=1;
             if jMax>0
