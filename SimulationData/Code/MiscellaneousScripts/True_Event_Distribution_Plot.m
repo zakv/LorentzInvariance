@@ -7,7 +7,7 @@ n_points=200;
 x_points=linspace(plot_start,plot_end,n_points);
 addpath('../Mex/')
 speeds=datenum_to_cmb_velocity(x_points);
-figure();
+fig=figure('WindowStyle','docked');
 hold on
 plot(x_points,speeds,'r');
 shift_speeds=datenum_to_cmb_velocity(event_times);
@@ -17,6 +17,13 @@ hold off
 ylabel('CMB Speed (m/s)');
 datetick('x','mmm yyyy');
 xlim([plot_start,plot_end]);
-title('Earth CMB Speed');
+%title('Earth CMB Speed');
 legend(data_plot,'Events','Location','SouthWest');
 %set(legend, 'interpreter', 'latex')
+
+%Save the figure
+if exist('plots','dir')~=7
+    mkdir plots
+end
+file_name='plots/True_Event_Distribution';
+print(fig,file_name,'-depsc')
