@@ -4,7 +4,10 @@ function [ A_1 ] = CharmanIV( date_times, data, period )
 %   The value returned is actually 2*A_1 because the amplitude of the given
 %   frequency component has a contribution from A_-1, the fourier component
 %   for negative frequency of the same magnitude.  The signal resulting
-%   from adding the A_-1 (=conj(A_1)) is 2*abs(A_1)*cos(omega*t+arg(A_1))
+%   from adding the A_-1 (=conj(A_1)) is 2*abs(A_1)*cos(omega*t-arg(A_1)).
+%   Right now there is not a lot of meaning to arg(A_1); it just gives the
+%   phase of the cosine wave relative to a cosine wave starting at t=0
+%   rather than relative to a cosine wave in phase with the CMB speed.
 %
 %   date_times should be a column vector giving the times of the events.
 %   data should be a column vector giving the corresponding data of

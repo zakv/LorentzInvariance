@@ -1,8 +1,8 @@
 function [ speed,theta,phi ] = datenum_to_cmb_velocity( datenum_times )
-%Returns three arrays: the first giving the CMB speed of the experiment,
-%the second giving the angle (theta, in degrees) of the trap relative to
-%the CMB velocity vector, and the third giving one last mostly irrelevant
-%position angle.
+%Returns three arrays: the first giving the CMB speed of the experiment (in
+%m/s), the second giving the angle (theta, in degrees) of the trap relative
+%to the CMB velocity vector, and the third giving one last mostly
+%irrelevant position angle.
 %   The last angle (phi, in degrees) the rotation around the trap axis of
 %   the CMB velocity vector.  phi=0 corresponds to the CMB velocity vector
 %   pointing in the plane defined by a vector pointing to the zenith and

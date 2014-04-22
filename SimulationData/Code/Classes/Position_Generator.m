@@ -108,12 +108,17 @@ classdef Position_Generator < handle
             end
         end
         
-        function z_position = get_one_z_position(self,charge,quip_index)
+        function z_position = get_one_z_position(self,charge,quip_index,varargin)
             %Returns one z-position by choosing the appropriate cdfs and
             %interpolating
-            %   quip_index should be 1 for left or 2 for right
+            %   quip_index should be 1 for left or 2 for right.  rand_val
+            %   can optionally be specified as an additional argument
+            %   (useful for debugging and for one of the plots).
             
             rand_val=self.rand(1); %random number used to pick position
+            if nargin>0
+                rand_val=varargin{1}; %Overwrite the randomly chosen value
+            end
             
             %Figure out which Tracer_Data_Sets to use.
             if quip_index==1

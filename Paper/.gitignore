@@ -1,0 +1,14 @@
+# LaTex/Texmaker files #
+########################
+*.aux
+*.log
+*.gz
+*.bak
+*.toc
+*-converted-to.*
+*.bbl
+*.blg
+*.dvi
+*.out
+*.ps
+LorentzInvarianceNotes.bib
