@@ -9,7 +9,7 @@ cd(oldDir);
 
 oldDir = cd('../../Class/');
 successful = successful_run();
-run2010 = successful.run('local','2010','all');
+run2010 = successful.run('2010','all');
 cd(oldDir);
 run2010 = sort(run2010);
 
@@ -17,7 +17,9 @@ iMax = numel(runNumber);
 time = zeros(size(runNumber));
 
 for i = 1:iMax
-    time(i) = st2010_matt(run2010==runNumber(i));
+    index = find(run2010==runNumber(i));
+    disp(index);
+    time(i) = st2010_matt(min(index));
     if isempty(time(i))
         time(i) = NaN;
     end

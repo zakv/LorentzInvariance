@@ -1,4 +1,4 @@
-function [eventTimes] = generate_event_times()
+function [eventTimes] = generate_event_times(random_generator)
 %Returns a column vector of event times in UTC.
 
 %METHOD
@@ -86,32 +86,32 @@ firstRun_to_lastRun_sim = zeros(jMax,1);
 
 for j=1:jMax
     %T1) calculates time when first run ends
-    rand_val = rand(1);
+    rand_val = random_generator.rand(1);
     shiftStart_to_firstRun_sim(j) = get_occurrence_time(rand_val,start_estimates_poisson(1),start_estimates_poisson(2));
-    rand_val1 = rand(1);
-    rand_val2 = rand(1);
+    rand_val1 = random_generator.rand(1);
+    rand_val2 = random_generator.rand(1);
     first_runTime = shiftCycle(j,1) + shiftStart_to_firstRun_sim(j) +...
         get_normal_dis(rand_val1,rand_val2,run_estimates_gaussian(1),run_estimates_gaussian(2));
     %T2) calculates time when last run ends
-    rand_val1 = rand(1);
-    rand_val2 = rand(1);
+    rand_val1 = random_generator.rand(1);
+    rand_val2 = random_generator.rand(1);
     firstRun_to_lastRun_sim(j) = get_normal_dis(rand_val1,rand_val2,end_estimates_gaussian(1),end_estimates_gaussian(2));
-    rand_val1 = rand(1);
-    rand_val2 = rand(1);
+    rand_val1 = random_generator.rand(1);
+    rand_val2 = random_generator.rand(1);
     last_runTime = shiftCycle(j,1) + shiftStart_to_firstRun_sim(j) + firstRun_to_lastRun_sim(j) +...
                 get_normal_dis(rand_val1,rand_val2,run_estimates_gaussian(1),run_estimates_gaussian(2));
     %T2-T1) time from when first run ends to when last run ends
     runSpan = last_runTime - first_runTime;
     %number of runs per time (T2-T1)
-    rand_val = rand(1);
+    rand_val = random_generator.rand(1);
     n_runs = get_n_runs(rand_val,runSpan,n_runs_lambda);
     %number of events per each run
     if runSpan > 0 && n_runs >= 1
         for i = 1:n_runs
             run_index = run_index + 1;
-            rand_val = rand(1);
+            rand_val = random_generator.rand(1);
             eventTime = first_runTime + runSpan*rand_val;
-            rand_val = rand(1);
+            rand_val = random_generator.rand(1);
             n_Hbars(run_index) = get_n_Hbars(rand_val,n_Hbar_lambda);
             eventTimes(row_index:row_index+n_Hbars(run_index)-1) = eventTime;
             %Prepare for next iteration

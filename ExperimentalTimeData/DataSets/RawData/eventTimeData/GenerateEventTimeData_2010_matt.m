@@ -15,7 +15,7 @@ st2010R_matt_ex = xlsread(readFilename, readSheet, readxlRange);
 st2010R_matt = x2mdate(st2010R_matt_ex);
 cd(oldDir);
 
-st2010_matt = vertcat(st2010_matt,st2010R_matt);
+st2010_matt = vertcat(st2010L_matt,st2010R_matt);
 st2010_matt = sort(st2010_matt);
 
 %save data

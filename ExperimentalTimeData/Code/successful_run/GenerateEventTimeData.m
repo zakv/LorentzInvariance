@@ -34,6 +34,8 @@ type2010L = eventTime2010L(:,3);
 utc2010L = st2utc_ch(st2010L);
 jd2010L = datenum2jd(utc2010L);
 
+oldDir = cd('../../DataSets/');
 save('EventTimeData','run2011R','st2011R','utc2011R','jd2011R','type2011R',...
     'run2010R','st2010R','utc2010R','jd2010R','type2010R',...
     'run2010L','st2010L','utc2010L','jd2010L','type2010L');
+cd(oldDir);

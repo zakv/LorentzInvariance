@@ -1,5 +1,5 @@
 function tobj = successful_run()
-
+%Gets successful events' run number or event time.
 %ex)
 %   successful = successful_run();
 %
