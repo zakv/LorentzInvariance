@@ -1,4 +1,4 @@
-function [eventTimes] = generate_event_times(random_generator)
+function [iterationData] = generate_event_times()
 %Returns a column vector of event times in UTC.
 
 %METHOD
@@ -7,20 +7,19 @@ function [eventTimes] = generate_event_times(random_generator)
 %       - poisson (fit the empirical CDF with exponential)
 %Decides time from when first run starts to when last run starts
 %       - normal distribution (fitting parameter:mean&std)
-%Decides time from when run starts to ends
-%       - normal distribution (fitting parameter:median%MAD)
 %Decides number of successful run during the time span 
 %       - poissonian (with the restriction that it is greater than zero)
-%Decides time of successful run 
+%Decides time of successful run starts
 %       - uniform random
 %Decides number of events for each successful run
 %       - poisson process (fitting parameter:maximum likelihood estimate)
+%Decides time from when run starts to ends(assuming this is the event time)
+%       - normal distribution (fitting parameter:median%MAD)
 
-%[result of this code]
-%running 1000 times :
-%number of events 388.4345+-29.653 (experiment:386)
-%number of runs   321.842+-23.3894 (experiment:320)
-%total runSpan    29.6839+-1.3974  (experiment:29.6966)
+%10000iterations
+%number of events : 388.6286+_29.0207 (experiment:386)
+%number of runs   : 322.1151+_23.1404 (experiment:320)
+%total run time   : 29.7177+_1.4017 (experiment:29.6966)
 
 %MEMO: the number or events doesn't change that much even if the parameter of
 %estimating when run starts to ends is changed to median.
@@ -38,7 +37,7 @@ attemtpedStartTime = attempted.startTime();
 runTime = attempted.start2end_quench();
 cd(oldDir);
 
-n_Hbars_experiment = vertcat(1*ones(261,1),2*ones(53,1),3*ones(5,1),4*ones(1,1));
+%n_Hbars_experiment = vertcat(1*ones(261,1),2*ones(53,1),3*ones(5,1),4*ones(1,1));
 %this data is only for figure
 
 %-----------prepare data------------------------
@@ -80,38 +79,31 @@ run_index = 0;
 n_Hbars = zeros(1000,1);
 
 test_n_runs = zeros(jMax,1);
-test_runSpan = zeros(jMax,1);
 shiftStart_to_firstRun_sim = zeros(jMax,1);
 firstRun_to_lastRun_sim = zeros(jMax,1);
 
 for j=1:jMax
-    %T1) calculates time when first run ends
-    rand_val = random_generator.rand(1);
+    %T1) calculates time when first run starts
+    rand_val = rand(1);
     shiftStart_to_firstRun_sim(j) = get_occurrence_time(rand_val,start_estimates_poisson(1),start_estimates_poisson(2));
-    rand_val1 = random_generator.rand(1);
-    rand_val2 = random_generator.rand(1);
-    first_runTime = shiftCycle(j,1) + shiftStart_to_firstRun_sim(j) +...
-        get_normal_dis(rand_val1,rand_val2,run_estimates_gaussian(1),run_estimates_gaussian(2));
-    %T2) calculates time when last run ends
-    rand_val1 = random_generator.rand(1);
-    rand_val2 = random_generator.rand(1);
+    first_runTime = shiftCycle(j,1) + shiftStart_to_firstRun_sim(j);
+    %dT) calculates time from when first run starts to when last run starts
+    rand_val1 = rand(1);
+    rand_val2 = rand(1);
     firstRun_to_lastRun_sim(j) = get_normal_dis(rand_val1,rand_val2,end_estimates_gaussian(1),end_estimates_gaussian(2));
-    rand_val1 = random_generator.rand(1);
-    rand_val2 = random_generator.rand(1);
-    last_runTime = shiftCycle(j,1) + shiftStart_to_firstRun_sim(j) + firstRun_to_lastRun_sim(j) +...
-                get_normal_dis(rand_val1,rand_val2,run_estimates_gaussian(1),run_estimates_gaussian(2));
-    %T2-T1) time from when first run ends to when last run ends
-    runSpan = last_runTime - first_runTime;
-    %number of runs per time (T2-T1)
-    rand_val = random_generator.rand(1);
-    n_runs = get_n_runs(rand_val,runSpan,n_runs_lambda);
+    %number of runs per time dT
+    rand_val = rand(1);
+    n_runs = get_n_runs(rand_val,firstRun_to_lastRun_sim(j),n_runs_lambda);
     %number of events per each run
-    if runSpan > 0 && n_runs >= 1
+    if n_runs >= 1
         for i = 1:n_runs
             run_index = run_index + 1;
-            rand_val = random_generator.rand(1);
-            eventTime = first_runTime + runSpan*rand_val;
-            rand_val = random_generator.rand(1);
+            rand_val1 = rand(1);
+            rand_val2 = rand(1);
+            runStart2End = get_normal_dis(rand_val1,rand_val2,run_estimates_gaussian(1),run_estimates_gaussian(2));
+            rand_val = rand(1);
+            eventTime = first_runTime + firstRun_to_lastRun_sim(j)*rand_val + runStart2End;
+            rand_val = rand(1);
             n_Hbars(run_index) = get_n_Hbars(rand_val,n_Hbar_lambda);
             eventTimes(row_index:row_index+n_Hbars(run_index)-1) = eventTime;
             %Prepare for next iteration
@@ -119,16 +111,15 @@ for j=1:jMax
         end
     end
     test_n_runs(j) = n_runs;
-    test_runSpan(j) = runSpan;
 end
 
 %Strip unused rows of preallocated array
 used_indices=eventTimes~=0;
 eventTimes=eventTimes(used_indices);
-used_indices=n_Hbars~=0;
-n_Hbars=n_Hbars(used_indices);
+%used_indices=n_Hbars~=0;
+%n_Hbars=n_Hbars(used_indices);
 
-
+%{
 %-------------plot experimental & simulation data --------------------
 %plot time from when shift starts to when first run starts
 %hist
@@ -172,7 +163,7 @@ legend('experiment','simulation');
 %plot events time diagram
 oldDir = cd('../../../ExperimentalTimeData/Code/TimeAnalysisFunction/');
 f_events_diagram = figure;
-plot_time_from_0am(eventTimes);
+plot_time_date(eventTimes);
 set_for_time_graph();
 cd(oldDir);
 
@@ -181,11 +172,14 @@ saveas(f_events_diagram,'eventTimes_diagram.pdf','pdf');
 %---------for CHECK ---write total number of event % run,and run span------
 dispstr = ['total number of run is ',num2str(sum(test_n_runs)),' (experiment:',num2str(n_successfulRuns),')'];
 disp(dispstr);
-dispstr = ['total run span is ',num2str(sum(test_runSpan)),' (experiment:',num2str(totalRunSpan),')'];
+dispstr = ['total run span is ',num2str(sum(firstRun_to_lastRun_sim)),' (experiment:',num2str(totalRunSpan),')'];
 disp(dispstr);
 dispstr = ['total number of event time is ',num2str(numel(eventTimes)),' (experiment:',num2str(numel(successfulEventTime)),')'];
 disp(dispstr);
+%}
 
+%-------for iteration----------
+iterationData = [numel(eventTimes),sum(test_n_runs),sum(firstRun_to_lastRun_sim)];
 end
 
 function [time] = get_occurrence_time(rand_val,t_0,time_lambda)

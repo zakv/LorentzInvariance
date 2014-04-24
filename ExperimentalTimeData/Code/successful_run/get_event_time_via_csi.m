@@ -133,9 +133,19 @@ for i = 1:iMax
                 month=12;
             end
             day=str2double(dateMatch.day);
-            if dateMatch.hour<timeCalClockMatch.hour
-                %If this is the case, timeCalClock must be from the day before dateMatch
+            %When timeCalClock > entry time, and different day
+            if timeCalClockMatch.hour - dateMatch.hour > 12
+                %If this is the case, timeClock must be from the day before dateMatch
                 day=day-1;
+                dispstr=['Running till the next day for run=',num2str(run(i))];
+                disp(dispstr);
+            end
+            % when entry time > timeCalClock, and different day
+            if dateMatch.hour - timeCalClockMatch.hour > 12
+                %If this is the case, timeClock must be from the day after dateMatch
+                    day = day + 1;
+                    dispstr=['Running till the next day for run=',num2str(run(i))];
+                    disp(dispstr);
             end
             hour=str2double(timeCalClockMatch.hour);
             minute=str2double(timeCalClockMatch.minute);

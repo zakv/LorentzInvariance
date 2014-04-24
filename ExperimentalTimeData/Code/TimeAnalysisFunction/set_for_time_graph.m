@@ -2,13 +2,16 @@ function [] = set_for_time_graph()
 %Sets plot for time distribution(clock time from 0am against date)
 
 hold on
+xmin = 734351; %datenum(2010,8,1,0,0,0);
+xmax = 734869; %datenum(2012,1,1,0,0,0);
+xlim([xmin xmax]);
+
 set(gca, 'YDir','rev')
-datetick('x','mmm yy','keeplimits')
+datetick('x','mmm yyyy','keeplimits')
 ylim([0,24])
 
-set(gca,'YTick',0:8:24)
-set(gca,'YTickLabel',{'0:00','8:00','16:00','24:00'})
-xlabel('Date')
+set(gca,'YTick',0:6:24)
+set(gca,'YTickLabel',{'0:00','6:00','12:00','18:00','24:00'})
 ylabel('Coordinated Universal Time')
 
 end
