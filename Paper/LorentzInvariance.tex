@@ -12,7 +12,7 @@
 \title{Experimental Search for Lorentz Violation in Antihydrogen}
 \author{F. Isono}
 \affiliation{Department of Physics, University of California, Berkeley, CA 94720-7300, USA}
-\affiliation{Somewhere in the Land of Natto}
+\affiliation{Department of Physics, Tokyo Institute of Technology, Meguro, Tokyo 152-8551, Japan}
 
 \author{Z. Vendeiro}
 \affiliation{Department of Physics, University of California, Berkeley, CA 94720-7300, USA}
@@ -52,7 +52,9 @@ Proposed violations are expected to be correlated with the velocity and/or orien
 \end{figure}
 
 \section{Methods Summary}
-A bound on the temporal variation of the antihydrogen charge, a nonzero value of which would indicate a a violation of Lorentz Invariance, is performed by comparison of a test statistic $S$ to an estimated distribution of this statistic.  This estimated distribution is inferred from Monte-Carlo simulations of the ALPHA experiment.  The statistics chosen are intended to approximate the Fourier component
+A bound on the temporal variation of the antihydrogen charge is performed by comparison of a test statistic $S$, constructed to approximate the magnitude of a Fourier coefficient, of the collected data to simulated distributions of this statistic.  A statistically significant nonzero value of $S$ would indicate a violation of Lorentz Invariance.
+
+Define $f(t)$ to be a function that maps times of $\bar{H}$ annihilations to the $z$ position of those annihilations.
 
 \begin{figure}
   \centering
@@ -69,7 +71,7 @@ I dunno, ask Fumika how we do this.
 
 
 \subsection*{Position Selection}
-Creation of pseudo-data sets requires an algorithm capable of generating $z$ positions of $\bar{H}$ annihilations for arbitrary charge values.  This is effectively achieved by randomly sampling an approximated inverse-CDF of the annihilation locations along the trap axis for the given charge.
+Creation of pseudo-data sets requires an algorithm capable of generating $z$ positions of $\bar{H}$ annihilations for arbitrary charge values.  This is achieved by randomly sampling an approximated inverse CDF of the annihilation locations along the trap axis for the given charge.
 
 Using the symplectic integrator discussed in Ref. \onlinecite{fractionalcharge}, a list of annihilation $z$ coordinates is created for both quip directions for several different charges.  These lists are then adjusted to account for effects from detector smearing and missed detections due to cosmic ray filtering criteria, also discussed in Ref. \onlinecite{fractionalcharge}.  This provides empirical CDFs of simulated annihilations for various charges.  A simulated $z$ value for these charges can be chosen by selecting a random value from a uniform distribution on the interval (0,1), then determining the associated $z$ value by linearly interpolating the inverse CDF.  For charges between the discrete list of values for which the symplectic integrator has provided results, $z$ positions can be assigned by performing the above interpolation on the two neighboring empirical CDFs using the same random value, then further interpolating by taking a weighted average of the two results.  The weights are chosen to provide a linear interpolation between the two sampled charge distributions.  The process is summarized in Fig. \ref{fig:z_interpolation}.
 
@@ -78,13 +80,16 @@ To be continued\ldots
 \end{acknowledgments}
 
 \section{Notes}
-The graphs right now are created in Matlab.  In the future they will be made in Origin and should look prettier.  I also need to add the other authors and stuff to the fractional charge paper, but I'm waiting to see if I can find an automatically-generated bibtex entry somewhere.
+The graphs right now are created in Matlab.  In the future they will be made in Origin and should look prettier.
+
+We also need to add the other authors and stuff to the fractional charge paper, but I'm waiting to see if I can find an automatically-generated bibtex entry somewhere.
+
+Is that the proper address for Tokyo Institute of technology?
+
+The reference to the figure at the end of the Position Selection subsection is correct in the source, but the output pdf points to Fig 1 instead.  This will likely resolve itself once a reference to the first figure is added.
 
 \nocite{fractionalcharge}
 \bibliographystyle{plain}
 \bibliography{References.bib}
-
-\section{stuff after bibliography}
-Just put this here as part of some debugging.
 
 \end{document}
