@@ -1,4 +1,4 @@
-function [iterationData] = generate_event_times()
+function [eventTimes] = generate_event_times(random_generator)
 %Returns a column vector of event times in UTC.
 
 %METHOD
@@ -29,10 +29,10 @@ oldDir = cd('../../../ExperimentalTimeData/Class');
 %gets time information
 successful = successful_run();
 attempted = attempted_run();
-shiftCycle = shift_cycle();
+shift = shift_cycle();
 
 successfulEventTime = successful.eventTime('utc','all','all');%utc
-shiftCycle = shiftCycle.attempted();
+shiftCycle = shift.attempted();
 attemtpedStartTime = attempted.startTime();
 runTime = attempted.start2end_quench();
 cd(oldDir);
@@ -46,20 +46,22 @@ oldDir = cd('../../../ExperimentalTimeData/Code/TimeAnalysisFunction/');
 shiftCycle = st2utc_ch(shiftCycle);
 attemtpedStartTime = st2utc_ch(attemtpedStartTime);
 %get the first and last run in a shift
-runs_cycle = calc_events_per_time_cycle(attemtpedStartTime,shiftCycle);
+[~,runsCycle] = calc_events_per_time_cycle(attemtpedStartTime,shiftCycle);
 cd(oldDir);
 
-shiftStart_to_firstRun = runs_cycle(:,2) - shiftCycle(:,1);
-firstRun_to_lastRun = runs_cycle(:,3) - runs_cycle(:,2);
+%shiftStart_to_firstRun = runsCycle(:,1) - shiftCycle(:,1);%for estimation and plot
+firstRun_to_lastRun = runsCycle(:,2) - runsCycle(:,1);
+
 totalRunSpan = sum(firstRun_to_lastRun);
-n_successfulRuns = numel(unique(successfulEventTime)); %320
+n_successfulRuns = numel(unique(successfulEventTime));%number of runs (experiment)
+n_cycle = length(runsCycle);%number of shift cycles
 
 %--------calculates estimetes parameter-------------
 %probability of getting one Hbar for the run - Poisson process
-n_Hbar_lambda=0.387532;%maximum likelihood estimate
+lambda_n_Hbar=0.387532;%maximum likelihood estimate
 
 %probability of getting successful run in a time
-n_runs_lambda=n_successfulRuns/totalRunSpan;
+lambda_n_runs=n_successfulRuns/totalRunSpan;
 
 %estimates time from when shift starts to when firstrun starts
 start_estimates_poisson = [0.0058050, 9.3289];
@@ -74,7 +76,7 @@ run_estimates_gaussian = [median(runTime), 1.4826*mad(runTime,1)];
 %------------generate event times--------------------
 eventTimes=zeros(500,1); %Preallocate
 row_index=1;
-jMax = numel(shiftStart_to_firstRun);
+jMax = n_cycle;
 run_index = 0;
 n_Hbars = zeros(1000,1);
 
@@ -84,27 +86,26 @@ firstRun_to_lastRun_sim = zeros(jMax,1);
 
 for j=1:jMax
     %T1) calculates time when first run starts
-    rand_val = rand(1);
+    rand_val = random_generator.rand(1);
     shiftStart_to_firstRun_sim(j) = get_occurrence_time(rand_val,start_estimates_poisson(1),start_estimates_poisson(2));
     first_runTime = shiftCycle(j,1) + shiftStart_to_firstRun_sim(j);
+
     %dT) calculates time from when first run starts to when last run starts
-    rand_val1 = rand(1);
-    rand_val2 = rand(1);
-    firstRun_to_lastRun_sim(j) = get_normal_dis(rand_val1,rand_val2,end_estimates_gaussian(1),end_estimates_gaussian(2));
+    rand_val = random_generator.rand(1);
+    firstRun_to_lastRun_sim(j) = get_normal_dis(rand_val,end_estimates_gaussian(1),end_estimates_gaussian(2));
     %number of runs per time dT
-    rand_val = rand(1);
-    n_runs = get_n_runs(rand_val,firstRun_to_lastRun_sim(j),n_runs_lambda);
+    rand_val = random_generator.rand(1);
+    n_runs = get_n_runs(rand_val,firstRun_to_lastRun_sim(j),lambda_n_runs);
     %number of events per each run
     if n_runs >= 1
         for i = 1:n_runs
             run_index = run_index + 1;
-            rand_val1 = rand(1);
-            rand_val2 = rand(1);
-            runStart2End = get_normal_dis(rand_val1,rand_val2,run_estimates_gaussian(1),run_estimates_gaussian(2));
-            rand_val = rand(1);
+            rand_val = random_generator.rand(1);
+            runStart2End = get_normal_dis(rand_val,run_estimates_gaussian(1),run_estimates_gaussian(2));
+            rand_val = random_generator.rand(1);
             eventTime = first_runTime + firstRun_to_lastRun_sim(j)*rand_val + runStart2End;
-            rand_val = rand(1);
-            n_Hbars(run_index) = get_n_Hbars(rand_val,n_Hbar_lambda);
+            rand_val = random_generator.rand(1);
+            n_Hbars(run_index) = get_n_Hbars(rand_val,lambda_n_Hbar);
             eventTimes(row_index:row_index+n_Hbars(run_index)-1) = eventTime;
             %Prepare for next iteration
             row_index=row_index+n_Hbars(run_index);
@@ -117,7 +118,7 @@ end
 used_indices=eventTimes~=0;
 eventTimes=eventTimes(used_indices);
 %used_indices=n_Hbars~=0;
-%n_Hbars=n_Hbars(used_indices);
+%n_Hbars=n_Hbars(used_indices);%for plot
 
 %{
 %-------------plot experimental & simulation data --------------------
@@ -163,7 +164,7 @@ legend('experiment','simulation');
 %plot events time diagram
 oldDir = cd('../../../ExperimentalTimeData/Code/TimeAnalysisFunction/');
 f_events_diagram = figure;
-plot_time_date(eventTimes);
+plot_time_date(eventTimes,'r');
 set_for_time_graph();
 cd(oldDir);
 
@@ -178,8 +179,6 @@ dispstr = ['total number of event time is ',num2str(numel(eventTimes)),' (experi
 disp(dispstr);
 %}
 
-%-------for iteration----------
-iterationData = [numel(eventTimes),sum(test_n_runs),sum(firstRun_to_lastRun_sim)];
 end
 
 function [time] = get_occurrence_time(rand_val,t_0,time_lambda)
@@ -188,17 +187,15 @@ function [time] = get_occurrence_time(rand_val,t_0,time_lambda)
 time = - log(1 - rand_val)/time_lambda + t_0;
 end
 
-function [value] = get_normal_dis(rand_val1,rand_val2,mu,std)
-%Box-Muller transform. Needs two rands.
-rand_norm = sqrt(-2*log(rand_val1))*cos(2*pi*rand_val2);
-value = mu + std.*rand_norm;
+function[value] = get_normal_dis(rand_val,mu,std)
+value = sqrt(2*std^2)*erfinv(2*rand_val - 1) + mu;
 end
 
-function [n_Hbars] = get_n_Hbars(rand_val,n_Hbar_lambda)
+function [n_Hbars] = get_n_Hbars(rand_val,lambda_n_Hbar)
 %Gives the number of Hbars in a given trapping run.
 
 %n_Hbars>=1
-probability=@(n)n_Hbar_lambda^n*exp(-n_Hbar_lambda)/factorial(n);
+probability=@(n)lambda_n_Hbar^n*exp(-lambda_n_Hbar)/factorial(n);
     %Probability of getting n events
 probability_0=probability(0); %Probability of getting 0 events
 rand_val_scaled=(1-probability_0)*rand_val+probability_0;
