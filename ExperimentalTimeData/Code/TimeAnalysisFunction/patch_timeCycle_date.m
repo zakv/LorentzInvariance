@@ -1,4 +1,4 @@
-function [X,Y,C] = patch_timeCycle_date(timeCycle)
+function [p] = patch_timeCycle_date(timeCycle)
 %calculate X, Y of XY graph and color C matrix required for 'patch'
 %function.
 
@@ -9,8 +9,10 @@ iMax = numel(startTime);
 
 [~, ~, ~, sH, sMN, sS] = datevec(startTime);
 startClockTime = sH + sMN./60 + sS./3600.;
+startDate = startTime - startClockTime/24;
 [~, ~, ~, eH, eMN, eS] = datevec(endTime);
 endClockTime = eH + eMN./60 + eS./3600.;
+endDate = endTime - endClockTime/24;
 
 X = zeros(size(4,iMax*2));
 Y = zeros(size(4,iMax*2));
@@ -20,8 +22,8 @@ j = 0;
 for i = 1:iMax
     j = j + 1;
     %start line
-    X(1,j) = startTime(i);
-    X(2,j) = startTime(i) + 1;
+    X(1,j) = startDate(i);
+    X(2,j) = X(1,j) + 1;
     Y(1:2,j) = startClockTime(i);
     %end line
     if sH(i) > eH(i)
@@ -30,8 +32,8 @@ for i = 1:iMax
         Y(3:4,j) = 24;
         %make another patch at next day
         j = j + 1;
-        X(1,j) = startTime(i) + 1;
-        X(2,j) = startTime(i) + 2;
+        X(1,j) = endDate(i);
+        X(2,j) = endDate(i) + 1;
         Y(1:2,j) = 0;
     end
     X(3,j) = X(2,j);
@@ -82,4 +84,4 @@ Y(:,j+1:iMax) = [];
 C(:,j+1:iMax) = [];
 
 p = patch(X,Y,C);
-set(p,'FaceColor','y')
+%set(p,'FaceColor','y')
