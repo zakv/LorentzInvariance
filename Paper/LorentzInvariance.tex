@@ -12,7 +12,7 @@
 \title{Experimental Search for Lorentz Violation in Antihydrogen}
 \author{F. Isono}
 \affiliation{Department of Physics, University of California, Berkeley, CA 94720-7300, USA}
-\affiliation{Somewhere in the Land of Natto}
+\affiliation{Department of Energy Sciences, Tokyo Institute of Technology, Yokohama, 226-8502, Japan}
 
 \author{Z. Vendeiro}
 \affiliation{Department of Physics, University of California, Berkeley, CA 94720-7300, USA}
@@ -36,7 +36,7 @@
 \author{A. Lotta-Folks}
 
 \begin{abstract}
-Data on locations of antihydrogen annihilations in the ALPHA trap is retrospectively annalyzed for temporal variation due to violations of Lorentz Invariance as the Earth rotates and orbits the sun.  To be continued\ldots
+Data on locations of antihydrogen annihilations in the ALPHA trap is retrospectively analyzed for temporal variation due to violations of Lorentz Invariance as the Earth rotates and orbits the sun.  To be continued\ldots
 \end{abstract}
 
 \maketitle
@@ -50,6 +50,15 @@ Proposed violations are expected to be correlated with the velocity and/or orien
   \label{fig:true_event_distribution}
   \caption{The CMB speed of the Earth over the period of time during which ALPHA was running.  Times of the various $\bar{H}$ annihilations events are marked.}
 \end{figure}
+
+Over 386 antihydrogens in 320 experimental runs passed all cuts to be able for the charge to be analyzed (Ref. \onlinecite{fractionalcharge}). The detection times of these events ranged over 405 days, 24 hours (see Fig.\ref{fig:eventTime_date_experiment}), which cover annual and daily cycles.
+
+\begin{figure}
+  \includegraphics[scale=0.6]{eventTime_date_experiment.eps}
+  \label{fig:eventTime_date_experiment}
+  \caption{The hour when antihydrogen events detected over the period of time during which ALPHA was running in Coordinated Univesal Time.}
+\end{figure}
+
 
 \section{Methods Summary}
 A bound on the temporal variation of the antihydrogen charge, a nonzero value of which would indicate a a violation of Lorentz Invariance, is performed by comparison of a test statistic $S$ to an estimated distribution of this statistic.  This estimated distribution is inferred from Monte-Carlo simulations of the ALPHA experiment.  The statistics chosen are intended to approximate the Fourier component
@@ -65,7 +74,21 @@ A bound on the temporal variation of the antihydrogen charge, a nonzero value of
 \end{figure}
 
 \subsection*{Time Selection}
-I dunno, ask Fumika how we do this.
+ The time of antihydrogen annihilation events where randomly sampled from estimations of $\sim 1900$  trial runs which data was collected in 2010 and 2011 to simulate the time of those 386 events which charge was eligible to be detected.
+ 
+ Here we define a run as a operation for one antihydrogen(s) trapping trial. Dozens of runs were conducted within 128 of 4 $\sim$ 17 hours time schedules when ALPHA were able to access the Antiproton Decelerator and actually tried to trap antyhidrogens. Since we have clock time information of the time of annihilation events in order of a second, mili second of  time difference between more than one antyhidrogen annihilations  in a run were ignored.
+ 
+ Within the 128 time spans, the beginning and the time length of the period when the operation was ready for being started, a standby time period, was predicted, since it usually takes time until we become ready for running apparatus after the given AD schedule has been started. The beginning of the time was estimated by Poisson statistics, which parameter $\lambda$ was 9.3289 /day  with +8.36 minutes shifted, and the time length was estimated by Gaussian statistics from the experimental result, 0.2320$\pm$0.1241 day. The annihilation events can only occur within this time period. 
+ 
+ Then the number of runs succeeded in trapping antihydrogen(s) in the standby time span, and the number of the trapped antihydrogens for each run were predicted using Poisson process. Poisson parameters were estimated from the fact that the 386 successful events were observed in 320 runs within 29.6966 days of the total standby time span in the two years of experiment. 
+The starting time of the decided number of  successful runs was allocated within the standby time span using an uniform random number. The annihilation event time was finally decided by adding 10 minutes of deliberately decided operatain time until annihilation happens, to the starting time of the run. The example of times selected with this method is shown in Fig.\ref{fig:eventTime_date_sim}.
+ 
+\begin{figure}
+  \includegraphics[scale=0.6]{eventTime_sim_example.eps}
+  \label{fig:eventTime_date_sim}
+  \caption{Time table for one example of time selection in Coordinated Universal Time. The time span when the experiment for trapping antihydrogen are ready to be started (yellow boxes) was chosen regarding to the actual time period when we became able to access to AD (green lines) . Then the number of runs succeeded in trapping antihydrogen, and the starting time  of the run as well as the duration time (red boxes) was chosen. At the time the bottom of red box shows, one to several antihydrogen annihilations annihilates.}
+\end{figure}
+
 
 
 \subsection*{Position Selection}
