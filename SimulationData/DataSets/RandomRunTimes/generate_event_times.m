@@ -1,4 +1,4 @@
-function [eventTimes] = generate_event_times(random_generator)
+function [eventTimes,run_first_last,run_start_end] = generate_event_times(random_generator)
 %Returns a column vector of event times in UTC.
 
 %METHOD
@@ -21,9 +21,6 @@ function [eventTimes] = generate_event_times(random_generator)
 %number of runs   : 322.1151+_23.1404 (experiment:320)
 %total run time   : 29.7177+_1.4017 (experiment:29.6966)
 
-%MEMO: the number or events doesn't change that much even if the parameter of
-%estimating when run starts to ends is changed to median.
-
 %-------------get experimental data-------------
 oldDir = cd('../../../ExperimentalTimeData/Class');
 %gets time information
@@ -34,7 +31,7 @@ shift = shift_cycle();
 successfulEventTime = successful.eventTime('utc','all','all');%utc
 shiftCycle = shift.attempted();
 attemtpedStartTime = attempted.startTime();
-runTime = attempted.start2end_quench();
+%runTime = attempted.start2end_quench();
 cd(oldDir);
 
 %n_Hbars_experiment = vertcat(1*ones(261,1),2*ones(53,1),3*ones(5,1),4*ones(1,1));
@@ -67,11 +64,11 @@ lambda_n_runs=n_successfulRuns/totalRunSpan;
 start_estimates_poisson = [0.0058050, 9.3289];
         %fit_shifted_poisson(shiftStart_to_firstRun);
         
-%estimates time from when shift starts to when last run starts using mean
+%estimates time from when the first run starts to when last run starts using mean
 end_estimates_gaussian = [mean(firstRun_to_lastRun), std(firstRun_to_lastRun)];
 
-%estimates time from when run starts to when run ends using median
-run_estimates_gaussian = [median(runTime), 1.4826*mad(runTime,1)];
+%time from when run starts to ends; exactly 10 min
+run_estimates_gaussian = [10/60/24, 0];
 
 %------------generate event times--------------------
 eventTimes=zeros(500,1); %Preallocate
@@ -83,27 +80,146 @@ n_Hbars = zeros(1000,1);
 test_n_runs = zeros(jMax,1);
 shiftStart_to_firstRun_sim = zeros(jMax,1);
 firstRun_to_lastRun_sim = zeros(jMax,1);
+first_runTime = zeros(jMax,1);
+last_runTime = zeros(jMax,1);
 
-for j=1:jMax
-    %T1) calculates time when first run starts
-    rand_val = random_generator.rand(1);
-    shiftStart_to_firstRun_sim(j) = get_occurrence_time(rand_val,start_estimates_poisson(1),start_estimates_poisson(2));
-    first_runTime = shiftCycle(j,1) + shiftStart_to_firstRun_sim(j);
+%for plot
+run_first_last = zeros(jMax,2);
+run_start_end = zeros(1000,2);
 
-    %dT) calculates time from when first run starts to when last run starts
-    rand_val = random_generator.rand(1);
-    firstRun_to_lastRun_sim(j) = get_normal_dis(rand_val,end_estimates_gaussian(1),end_estimates_gaussian(2));
-    %number of runs per time dT
+for j=1:jMax        
+    check_shift = 0;
+    failed = -1;
+    %until we get plausible time spans...
+    while check_shift == 0
+
+        %T1) get time when first run starts
+        rand_val = random_generator.rand(1);
+        shiftStart_to_firstRun_sim(j) = get_occurrence_time(rand_val,...
+            start_estimates_poisson(1),start_estimates_poisson(2));
+        first_runTime(j) = shiftCycle(j,1) + shiftStart_to_firstRun_sim(j);
+        %dT) get time span from when first run starts to when last run starts
+        %this time can't be negative sign.(This happens a few times)
+        while firstRun_to_lastRun_sim(j) <=0
+            rand_val = random_generator.rand(1);
+            firstRun_to_lastRun_sim(j) = get_normal_dis(rand_val,...
+                end_estimates_gaussian(1),end_estimates_gaussian(2));
+        end
+        last_runTime(j) = first_runTime(j) + firstRun_to_lastRun_sim(j);
+
+        %Shift span shouldn't be lasted for more than 17 hous
+        %There must be a break by the next shift starts
+        if last_runTime(j) - shiftCycle(j,1) < 17/24
+            if j~=jMax
+                if shiftCycle(j+1,1) -  last_runTime(j) > 0
+                    check_shift=1;
+                end
+            else check_shift=1;
+            end
+        end
+        failed = failed + 1;
+    end
+
+    if failed > 0
+        %succeeded in getting shift spans
+        str = ['failed to get time spans ', num2str(failed),' times'];
+        disp(str);
+    end
+
+end
+
+for j = 1:jMax        
+    %for plot
+    run_first_last(j,:) = [first_runTime(j), last_runTime(j)];
+    %get number of runs per the time span
     rand_val = random_generator.rand(1);
     n_runs = get_n_runs(rand_val,firstRun_to_lastRun_sim(j),lambda_n_runs);
-    %number of events per each run
+    %get time of each run and number of events per each run
     if n_runs >= 1
+        runStartTime = zeros(n_runs,1);
+        runStart2End = zeros(n_runs,1);
+        sum_runStart2End = 0;
         for i = 1:n_runs
             run_index = run_index + 1;
-            rand_val = random_generator.rand(1);
-            runStart2End = get_normal_dis(rand_val,run_estimates_gaussian(1),run_estimates_gaussian(2));
-            rand_val = random_generator.rand(1);
-            eventTime = first_runTime + firstRun_to_lastRun_sim(j)*rand_val + runStart2End;
+            
+            %until we can get plausible event time...
+            check = 0;
+            while check == 0
+                rand_val = random_generator.rand(1);
+                %get the time when run starts, but exclude the run spans that were already assigned
+                runStartTime_scaled = (firstRun_to_lastRun_sim(j)- sum_runStart2End)*rand_val;
+                sum_timeSpans =@(n) runStartTime(n) - first_runTime - sum(runStart2End(1:n-1));
+                %choose runStartTime from the possible time spans
+                n_span = 1;
+                
+                if i == 1
+                    runStartTime(i) = first_runTime(j) + runStartTime_scaled;
+                else
+                    time_scaled = runStartTime(1) - first_runTime(j);
+                    while runStartTime_scaled > time_scaled
+                        n_span = n_span+1;
+                        time_scaled = time_scaled + runStartTime(n_span)
+                    
+                    
+                    
+                    
+                    
+                    
+                    
+                    
+                    
+                    %see if the runStartTime_rel is in the n th span
+                    while runStartTime_scaled >= 0
+                        if n_span == 1
+                            min_possible_time = first_runTime(j);
+                        else
+                            min_possible_time = runStartTime(n_span-1) + runStart2End(n_span-1);
+                        end
+                        
+                        if n_span == 1
+                            max_possible_time = runStartTime(1);
+                        elseif n_span == i
+                            max_possible_time = last_runTime(j);
+                        else
+                            max_possible_time = runStartTime(n_span);
+                        end
+                        
+                        possible_timeSpan = max_possible_time - min_possible_time;
+                        
+                        if runStartTime_scaled < possible_timeSpan
+                            runStartTime(i) = min_possible_time + runStartTime_scaled;
+                        end
+                        runStartTime_scaled = runStartTime_scaled - possible_timeSpan;
+                        n_span = n_span + 1;
+                    end
+                end
+                rand_val = random_generator.rand(1);
+                runStart2End(i) = get_normal_dis(rand_val,run_estimates_gaussian(1),run_estimates_gaussian(2));
+                eventTime = runStartTime(i) + runStart2End(i);
+
+                %check if the event time happens before the next run starts
+                %It's ok for the run to end after last_runTime(j) at i=k
+                if eventTime > last_runTime(j)
+                    check = 1;
+                    runStart2End(i) = last_runTime(j) - runStartTime(i);
+                end
+                if i == 1 || eventTime < max_possible_time
+                    check = 1;
+                end
+            end
+            sum_runStart2End = sum_runStart2End + runStart2End(i);
+            
+            %for plot
+            run_start_end(run_index,:) = [runStartTime(i), eventTime];
+            
+            %sort the time from past to present
+            [runStartTime,IX] = sort(runStartTime);
+            runStart2End = runStart2End(IX);
+            %put zeros at the end of the array
+            runStartTime = circshift(runStartTime,i - n_runs);
+            runStart2End = circshift(runStart2End,i - n_runs);
+            
+            %assign the event time to 1~ events
             rand_val = random_generator.rand(1);
             n_Hbars(run_index) = get_n_Hbars(rand_val,lambda_n_Hbar);
             eventTimes(row_index:row_index+n_Hbars(run_index)-1) = eventTime;
@@ -119,6 +235,10 @@ used_indices=eventTimes~=0;
 eventTimes=eventTimes(used_indices);
 %used_indices=n_Hbars~=0;
 %n_Hbars=n_Hbars(used_indices);%for plot
+
+%for plot
+used_indices=run_start_end(:,1)~=0;
+run_start_end=run_start_end(used_indices,:);
 
 %{
 %-------------plot experimental & simulation data --------------------

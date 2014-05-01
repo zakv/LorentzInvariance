@@ -17,7 +17,7 @@ shiftCycle = shift_cycle();
 successfulEventTime = successful.eventTime('utc','all','all');
 shiftCycle = shiftCycle.attempted();
 attemptedRunTime = attempted.startTime();
-runTime = attempted.start2end_quench();
+%runTime = attempted.start2end_quench();
 cd(oldDir);
 
 %-----------prepare data------------------------
@@ -43,18 +43,17 @@ lambda_n_Hbars=0.387532;%maximum likelihood estimate
 start_estimates_poisson = [0.0058050, 9.3289];
         %fit_shifted_poisson(shiftStart_to_firstRun);
 
-%estimates time from when shift starts to when last run starts using mean
+%estimates time from when first run starts to when last run starts using mean
 end_estimates_gaussian = [mean(firstRun_to_lastRun), std(firstRun_to_lastRun)];
 
-%estimates time from when run starts to when run ends using median
-run_estimates_gaussian = [median(runTime), 1.4826*mad(runTime,1)];
+%time from when run starts to ends; exactly 10 min
+run_estimates_gaussian = [10/60/24, 0];
     
 %--------1. decides number of runs--------------
 %number of runs
 rms = sqrt(n_runs_exp);
-rand_val1 = random_generator.rand(1);
-rand_val2 = random_generator.rand(1);
-n_runs_sim = round(get_normal_dis(rand_val1, rand_val2, n_runs_exp, rms));
+rand_val = random_generator.rand(1);
+n_runs_sim = round(get_normal_dis(rand_val, n_runs_exp, rms));
 
 %------2. decides running time------------------
 %when first run ends and last run ends
@@ -65,12 +64,15 @@ firstRun_to_lastRun_sim = zeros(n_cycle,1);
 for j = 1:n_cycle
     %Calculates time when first run starts in a cycle
     rand_val = random_generator.rand(1);
-    shiftStart_to_firstRun_sim(j) = get_occurrence_time(rand_val,start_estimates_poisson(1),start_estimates_poisson(2));
+    shiftStart_to_firstRun_sim(j) = get_occurrence_time(rand_val,...
+        start_estimates_poisson(1),start_estimates_poisson(2));
     first_runTime(j) = shiftCycle(j,1) + shiftStart_to_firstRun_sim(j);
     %Calculates time from when first run starts to last run starts
-    rand_val1 = random_generator.rand(1);
-    rand_val2 = random_generator.rand(1);
-    firstRun_to_lastRun_sim(j) = get_normal_dis(rand_val1,rand_val2,end_estimates_gaussian(1),end_estimates_gaussian(2));
+    while firstRun_to_lastRun_sim(j) <=0
+        rand_val = random_generator.rand(1);
+        firstRun_to_lastRun_sim(j) = get_normal_dis(rand_val,...
+            end_estimates_gaussian(1),end_estimates_gaussian(2));
+    end
 end
 
 totalOperationTime_sim = sum(firstRun_to_lastRun_sim);
@@ -99,9 +101,8 @@ for m = 1:n_runs_sim
     %absolute time when run starts
     runStartTime = first_runTime(k) + runTime_rel - sum_operationTime;
     %event time(run starting time + time from when run starts to ends
-    rand_val1 = random_generator.rand(1);
-    rand_val2 = random_generator.rand(1);
-    eventTime = runStartTime + get_normal_dis(rand_val1,rand_val2,run_estimates_gaussian(1),run_estimates_gaussian(2));
+    rand_val = random_generator.rand(1);
+    eventTime = runStartTime + get_normal_dis(rand_val,run_estimates_gaussian(1),run_estimates_gaussian(2));
     %number of events per run
     rand_val = random_generator.rand(1);
     n_events_per_run(m) = get_n_Hbars(rand_val,lambda_n_Hbars);
@@ -139,10 +140,8 @@ function [time] = get_occurrence_time(rand_val,t_0,time_lambda)
 time = - log(1 - rand_val)/time_lambda + t_0;
 end
 
-function [value] = get_normal_dis(rand_val1,rand_val2,mu,std)
-%Box-Muller transform. Needs two rands.
-rand_norm = sqrt(-2*log(rand_val1))*cos(2*pi*rand_val2);
-value = mu + std.*rand_norm;
+function[value] = get_normal_dis(rand_val,mu,std)
+value = sqrt(2*std^2)*erfinv(2*rand_val - 1) + mu;
 end
 
 function [n_Hbars] = get_n_Hbars(rand_val,n_Hbar_lambda)
