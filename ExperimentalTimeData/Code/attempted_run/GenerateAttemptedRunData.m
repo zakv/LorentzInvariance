@@ -143,8 +143,14 @@ dataLog_quench = dataLog(index_quench==1);
 startTime_quench = startTime(index_quench==1);
 spillLogID_quench = spillLogID(index_quench==1);
 endTime_quench = endTime(index_quench==1);
-%calculate the time between when run starts to quench occers
-start2end_quench = endTime_quench - startTime_quench;
+
+%calculate the time between when run starts to quench occers (need to
+%consider daylight saving)
+oldDir = cd('../TimeAnalysisFunction/');
+startTime_quench_utc = st2utc_ch(startTime_quench);
+endTime_quench_utc = st2utc_ch(endTime_quench);
+start2end_quench = endTime_quench_utc - startTime_quench_utc;
+cd(oldDir);
 
 %in case entry time is before start Time...
 if ~isempty(find(start2end_quench < 0,1))

@@ -17,6 +17,7 @@ run_g = data_obj.run;
 dataLog_g = data_obj.dataLog;
 spillLog_g = data_obj.spillLogID;
 startTime_g = data_obj.startTime;
+endTime_g = data_obj.endTime;
 
 % run data which also has quench dump activity
 run_quench_g = data_obj.run_quench;
@@ -42,6 +43,10 @@ tobj = public();
         startTime = startTime_g;
     end
 
+    function endTime = endTime()
+        endTime = endTime_g;
+    end
+
     function run_quench = run_quench()
         run_quench = run_quench_g;
     end
@@ -64,6 +69,7 @@ tobj = public();
             'dataLogID', @dataLog,...
             'spillLogID', @spillLog,...
             'startTime', @startTime,...
+            'endTime', @endTime,...
             'run_quench', @run_quench,...
             'dataLogID_quench', @dataLog_quench,...
             'spillLogID_quench', @spillLog_quench,...

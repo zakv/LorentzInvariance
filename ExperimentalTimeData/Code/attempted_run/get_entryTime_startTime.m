@@ -132,15 +132,14 @@ for i = 1:iMax
             if ~timeClockFound
             startTime(i) = NaN;
             else
-                %when startTime < entryTime
+                %when startTime < entryTime, and different day
                 if hour_start - hour_entry > 12
-                    %exclude the case that entry time is right before startTime 
                     %If this is the case, timeClock must be from the day before dateMatch
                     day=day-1;
                     dispstr=['Running till the next day for run=',num2str(run(i))];
                     disp(dispstr);
                 end
-                %when entryTime < startTime
+                %when entryTime < startTime, and different day
                 if hour_entry - hour_start > 12
                     day = day + 1;
                     dispstr=['Running till the next day for run=',num2str(run(i))];
