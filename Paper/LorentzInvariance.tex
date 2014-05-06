@@ -42,17 +42,18 @@ Data on locations of antihydrogen annihilations in the ALPHA trap is retrospecti
 
 \maketitle
 
+\section{Introduction}
 General relativity purports that a particle's charge is independent of the observer's reference frame.  Although the theoretical underpinnings of this prediction are strong, experimental verification of fundamental predictions of physics are critical to assessing the axioms necessary to develop such theory.  In this spirit, we have performed a retrospective analysis on the data collected during the ALPHA experiment's runs in 2010 and 2011 to examine it for indications of Lorentz violation in the antimatter sector.
 
-Proposed violations are expected to be correlated with the velocity and/or orientation of the trap relative to a preferred frame.  As is standard in searches for Lorentz violation, speed is measured relative to the rest frame of the CMB.
+Proposed violations are expected to be correlated with the velocity and/or orientation of the trap relative to a preferred frame.  As is common in searches for Lorentz violation, speed is measured relative to the rest frame of the CMB.  The Earth's CMB speed varies by $\sim\!\!15\%$ as it orbits the sun (see Fig \ref{fig:true_event_distribution}).
 
 \begin{figure}
-  \includegraphics[scale=0.3]{True_Event_Distribution.eps}
-  \caption{The CMB speed of the Earth over the period of time during which ALPHA was running.  Times of the various $\bar{H}$ annihilations events are marked.}
+  \includegraphics[scale=0.5]{True_Event_Distribution.eps}
+  \caption{The CMB speed of the Earth over the period of time during which ALPHA was running.  Times of the $\bar{H}$ annihilation events are marked.}
   \label{fig:true_event_distribution}
 \end{figure}
 
-Over 386 antihydrogens in 320 experimental runs passed all cuts to be able for the charge to be analyzed (Ref. \onlinecite{fractionalcharge}). The detection times of these events ranged over 405 days, 24 hours (see Fig.\ref{fig:eventTime_date_experiment}), which cover annual and daily cycles.
+Over 386 antihydrogens in 320 experimental runs passed all detection criteria, hereafter referred to as cuts\cite{fractionalcharge}.  Only the antihydrogens that passed the cuts are included in the analysis.  The times of these events were distributed over 405 days and over all hours of the day, (see Fig.\ref{fig:eventTime_date_experiment}), which covers both annual and daily cycles.
 
 \begin{figure}
   \includegraphics[scale=0.6]{eventTime_date_experiment.eps}
@@ -64,7 +65,7 @@ Over 386 antihydrogens in 320 experimental runs passed all cuts to be able for t
 \section{Methods Summary}
 A bound on the temporal variation of the antihydrogen charge is performed by comparison of a test statistic $S$, constructed to approximate the magnitude of a Fourier coefficient, of the collected data to simulated distributions of this statistic.  A statistically significant nonzero value of $S$ would indicate a violation of Lorentz Invariance.
 
-Define $f(t)$ to be a function that maps times of $\bar{H}$ annihilations to the $z$ position of those annihilations.
+The full data set consists of the annihilation times and $z$-values (position along trap axis) from ALPHA's trapping attempts.  Define $f(t)$ to be a function that maps times of $\bar{H}$ annihilations to the $z$ position of those annihilations.  To be continued \ldots
 
 \begin{figure}
   \centering
@@ -94,7 +95,7 @@ The starting time of the decided number of  successful runs was allocated within
 
 
 
-\subsection*{Position Selection}
+\section{Position Selection}
 Creation of pseudo-data sets requires an algorithm capable of generating $z$ positions of $\bar{H}$ annihilations for arbitrary charge values.  This is achieved by randomly sampling an approximated inverse CDF of the annihilation locations along the trap axis for the given charge.
 
 Using the symplectic integrator discussed in Ref. \onlinecite{fractionalcharge}, a list of annihilation $z$ coordinates is created for both quip directions for several different charges.  These lists are then adjusted to account for effects from detector smearing and missed detections due to cosmic ray filtering criteria, also discussed in Ref. \onlinecite{fractionalcharge}.  This provides empirical CDFs of simulated annihilations for various charges.  A simulated $z$ value for these charges can be chosen by selecting a random value from a uniform distribution on the interval (0,1), then determining the associated $z$ value by linearly interpolating the inverse CDF.  For charges between the discrete list of values for which the symplectic integrator has provided results, $z$ positions can be assigned by performing the above interpolation on the two neighboring empirical CDFs using the same random value, then further interpolating by taking a weighted average of the two results.  The weights are chosen to provide a linear interpolation between the two sampled charge distributions.  The process is summarized in Fig. \ref{fig:z_interpolation}.
@@ -108,9 +109,11 @@ The graphs right now are created in Matlab.  In the future they will be made in 
 
 We also need to add the other authors and stuff to the fractional charge paper, but I'm waiting to see if I can find an automatically-generated bibtex entry somewhere.
 
-Is that the proper address for Tokyo Institute of technology?
+Cite aephem
 
-The reference to the figure at the end of the Position Selection subsection is correct in the source, but the output pdf points to Fig 1 instead.  This will likely resolve itself once a reference to the first figure is added.
+Look for other papers on charge invariance
+
+Mention this method can be done better in the future
 
 \nocite{fractionalcharge}
 \bibliographystyle{plain}
