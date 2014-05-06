@@ -116,7 +116,7 @@ classdef Position_Generator < handle
             %   (useful for debugging and for one of the plots).
             
             rand_val=self.rand(1); %random number used to pick position
-            if nargin>0
+            if ~isempty(varargin)
                 rand_val=varargin{1}; %Overwrite the randomly chosen value
             end
             
