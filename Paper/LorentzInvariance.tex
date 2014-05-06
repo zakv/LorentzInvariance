@@ -53,7 +53,7 @@ Proposed violations are expected to be correlated with the velocity and/or orien
   \label{fig:true_event_distribution}
 \end{figure}
 
-Over 386 antihydrogens in 320 experimental runs passed all detection criteria, hereafter referred to as cuts\cite{fractionalcharge}.  Only the antihydrogens that passed the cuts are included in the analysis.  The times of these events were distributed over 405 days and over all hours of the day, (see Fig.\ref{fig:eventTime_date_experiment}), which covers both annual and daily cycles.
+Over 386 antihydrogens in 320 experimental runs passed all detection criteria, hereafter referred to as cuts\cite{amol:14a}.  Only the antihydrogens that passed the cuts are included in the analysis.  The times of these events were distributed over 405 days and over all hours of the day, (see Fig.\ref{fig:eventTime_date_experiment}), which covers both annual and daily cycles.
 
 \begin{figure}
   \includegraphics[scale=0.6]{eventTime_date_experiment.eps}
@@ -98,7 +98,7 @@ The starting time of the decided number of  successful runs was allocated within
 \section{Position Selection}
 Creation of pseudo-data sets requires an algorithm capable of generating $z$ positions of $\bar{H}$ annihilations for arbitrary charge values.  This is achieved by randomly sampling an approximated inverse CDF of the annihilation locations along the trap axis for the given charge.
 
-Using the symplectic integrator discussed in Ref. \onlinecite{fractionalcharge}, a list of annihilation $z$ coordinates is created for both quip directions for several different charges.  These lists are then adjusted to account for effects from detector smearing and missed detections due to cosmic ray filtering criteria, also discussed in Ref. \onlinecite{fractionalcharge}.  This provides empirical CDFs of simulated annihilations for various charges.  A simulated $z$ value for these charges can be chosen by selecting a random value from a uniform distribution on the interval (0,1), then determining the associated $z$ value by linearly interpolating the inverse CDF.  For charges between the discrete list of values for which the symplectic integrator has provided results, $z$ positions can be assigned by performing the above interpolation on the two neighboring empirical CDFs using the same random value, then further interpolating by taking a weighted average of the two results.  The weights are chosen to provide a linear interpolation between the two sampled charge distributions.  The process is summarized in Fig. \ref{fig:z_interpolation}.
+Using the symplectic integrator discussed in Ref. \onlinecite{amol:14a}, a list of annihilation $z$ coordinates is created for both quip directions for several different charges.  These lists are then adjusted to account for effects from detector smearing and missed detections due to cosmic ray filtering criteria, also discussed in Ref. \onlinecite{amol:14a}.  This provides empirical CDFs of simulated annihilations for various charges.  A simulated $z$ value for these charges can be chosen by selecting a random value from a uniform distribution on the interval (0,1), then determining the associated $z$ value by linearly interpolating the inverse CDF.  For charges between the discrete list of values for which the symplectic integrator has provided results, $z$ positions can be assigned by performing the above interpolation on the two neighboring empirical CDFs using the same random value, then further interpolating by taking a weighted average of the two results.  The weights are chosen to provide a linear interpolation between the two sampled charge distributions.  The process is summarized in Fig. \ref{fig:z_interpolation}.
 
 \begin{acknowledgments}
 To be continued\ldots
@@ -107,16 +107,13 @@ To be continued\ldots
 \section{Notes}
 The graphs right now are created in Matlab.  In the future they will be made in Origin and should look prettier.
 
-We also need to add the other authors and stuff to the fractional charge paper, but I'm waiting to see if I can find an automatically-generated bibtex entry somewhere.
-
 Cite aephem
 
 Look for other papers on charge invariance
 
 Mention this method can be done better in the future
 
-\nocite{fractionalcharge}
 \bibliographystyle{plain}
-\bibliography{References.bib}
+\bibliography{References.bib,bib.bib}
 
 \end{document}
