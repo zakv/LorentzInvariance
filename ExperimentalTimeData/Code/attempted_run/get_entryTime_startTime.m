@@ -20,7 +20,7 @@ for i = 1:iMax
 
     %figure out html file name from runNumber
     fileNameFound=false;
-    if strcmp(logtype,'elog') ==1
+    if strcmp(logtype,'elog') ==1 || strcmp(logtype,'dataLog') == 1
         fileNamePattern = fileNamePattern1;
         dataDir = dataDir1;
     elseif strcmp(logtype,'elogData_all') == 1 || strcmp(logtype,'dataLog_all') == 1
