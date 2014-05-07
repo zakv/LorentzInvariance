@@ -1,4 +1,4 @@
-function [entryTime,startTime] = get_entryTime_startTime(runNumber,run,logtype)
+function [entryTime,startTime] = get_entryTime_startTime(logID,run,logtype)
 %Gets first clock time that appears on elog for each run
 %logtype = 'elog' for successful run
 %          'DataLog' or 'dataLog' for failed run
@@ -6,17 +6,17 @@ function [entryTime,startTime] = get_entryTime_startTime(runNumber,run,logtype)
 %need to exclude run 27096! (datalog:27530,spilllog:15303)
 % It says "attempt" in Subject, but obviously not a trapping attempt.
 
-iMax = numel(runNumber);
-entryTime = zeros(size(runNumber));
-startTime = zeros(size(runNumber));
+iMax = numel(logID);
+entryTime = zeros(size(logID));
+startTime = zeros(size(logID));
 
 for i = 1:iMax
     
     dataDir1 = '../../DataSets/RawData/elogData';
     dataDir2='../../DataSets/RawData/elogData_all';
     dataDir3='../../DataSets/RawData/SpillLog';
-    fileNamePattern1=strcat('(^run_|^)',int2str(runNumber(i)),'_\d*.html');
-    fileNamePattern2=strcat('^',int2str(runNumber(i)),'.html');
+    fileNamePattern1=strcat('(^run_|^)',int2str(logID(i)),'_\d*.html');
+    fileNamePattern2=strcat('^',int2str(logID(i)),'.html');
 
     %figure out html file name from runNumber
     fileNameFound=false;
@@ -44,7 +44,7 @@ for i = 1:iMax
 
     if fileNameFound==false
         dispString=['Failed to find file for ',logtype,'=', ...
-                              int2str(runNumber(i))];
+                              int2str(logID(i))];
                           disp(dispString);
                           entryTime(i)=NaN;
                           startTime(i)=NaN;
@@ -65,7 +65,7 @@ for i = 1:iMax
             if ~isempty(regexp(lineText,datePattern, 'once'))
                 dateMatch=regexp(lineText,datePattern,'names');
                 if dateFound==true
-                    dispString=['Found multiple dates for ',logtype,'=',int2str(runNumber(i))];
+                    dispString=['Found multiple dates for ',logtype,'=',int2str(logID(i))];
                     disp(dispString)
                 end
                 dateFound=true;
@@ -88,12 +88,12 @@ for i = 1:iMax
         fclose(fileID);
         
         if ~timeClockFound
-            dispString=['Failed to find clock time for ',logtype,'=',int2str(runNumber(i))];
+            dispString=['Failed to find clock time for ',logtype,'=',int2str(logID(i))];
             disp(dispString)
         end
         
         if  ~dateFound
-            dispString=['Failed to find date for Number=',int2str(runNumber(i))];
+            dispString=['Failed to find date for Number=',int2str(logID(i))];
             disp(dispString)
             entryTime(i) = NaN;
         else
