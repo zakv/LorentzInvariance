@@ -1,7 +1,7 @@
 function [entryTime,startTime] = get_entryTime_startTime(logID,run,logtype)
 %Gets first clock time that appears on elog for each run
-%logtype = 'elog' for successful run
-%          'DataLog' or 'dataLog' for failed run
+%logtype = 'elog' or 'dataLog' for successful run
+%          'elogData_all' or 'dataLog_all' for attempted run including successful runs
 
 %need to exclude run 27096! (datalog:27530,spilllog:15303)
 % It says "attempt" in Subject, but obviously not a trapping attempt.
@@ -15,7 +15,7 @@ for i = 1:iMax
     dataDir1 = '../../DataSets/RawData/elogData';
     dataDir2='../../DataSets/RawData/elogData_all';
     dataDir3='../../DataSets/RawData/SpillLog';
-    fileNamePattern1=strcat('(^run_|^)',int2str(logID(i)),'_\d*.html');
+    fileNamePattern1=strcat('(^run\d*_|^\d*_)',int2str(logID(i)),'.html');
     fileNamePattern2=strcat('^',int2str(logID(i)),'.html');
 
     %figure out html file name from runNumber
