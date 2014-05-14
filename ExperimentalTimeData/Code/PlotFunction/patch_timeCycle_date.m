@@ -1,4 +1,4 @@
-function [p] = patch_timeCycle_date(timeCycle)
+function [p] = patch_timeCycle_date(timeCycle,color)
 %calculate X, Y of XY graph and color C matrix required for 'patch'
 %function.
 
@@ -84,4 +84,4 @@ Y(:,j+1:iMax) = [];
 C(:,j+1:iMax) = [];
 
 p = patch(X,Y,C);
-%set(p,'FaceColor','y')
+set(p,'FaceColor',color)
