@@ -1,11 +1,12 @@
-function [quenchFound] = find_quench_dump(IDNumber,run,IDType)
+function [quenchFound] = find_quench_dump(logID,run,IDType)
 %search is there is quench dump activitiy in the record(either elog data or
 %spill log)
 %IDType = 'elogData', 'elogData_all', or 'SpillLog'
 %return 0 or 1(found)
-%look for timeline of the given run in case different run's timeline is attached
+%look for timeline of the given run in case different run's timeline is
+%attached because sometimes different run's timeline is attached!
 
-iMax = numel(IDNumber);
+iMax = numel(logID);
 quenchFound = zeros(iMax,1);
 
 for i = 1:iMax
@@ -13,10 +14,10 @@ for i = 1:iMax
     dataDir1 = '../../DataSets/RawData/elogData';
     dataDir2='../../DataSets/RawData/elogData_all';
     dataDir3='../../DataSets/RawData/SpillLog';
-    fileNamePattern1=strcat('(^run_|^)',int2str(IDNumber(i)),'_\d*.html');
-    fileNamePattern2=strcat('^',int2str(IDNumber(i)),'.html');
+    fileNamePattern1=strcat('(^run\d*_|^\d*_)',int2str(logID(i)),'.html');
+    fileNamePattern2=strcat('^',int2str(logID(i)),'.html');
 
-    %figure out html file name from IDNumber
+    %figure out html file name from logID
     fileNameFound=false;
     if strcmp(IDType,'elog') ==1 || strcmp(IDType,'dataLog') == 1
         fileNamePattern = fileNamePattern1;
@@ -42,7 +43,7 @@ for i = 1:iMax
     
     if fileNameFound==false
         dispString=['Failed to find file for ',IDType,'=', ...
-                              int2str(IDNumber(i))];
+                              int2str(logID(i))];
                           disp(dispString);
                           quenchFound(i)=NaN;
     else
@@ -66,11 +67,11 @@ for i = 1:iMax
         fclose(fileID);
         if ~runFound
             dispString = ['Failed to find the spill timeline for ',IDType,'=',...
-                int2str(IDNumber(i))];
+                int2str(logID(i))];
             disp(dispString)
         elseif ~quenchFound(i)
             dispString=['Failed to find quench for ',IDType,'=', ...
-                int2str(IDNumber(i))];
+                int2str(logID(i))];
             disp(dispString)
         end
     end
