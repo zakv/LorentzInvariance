@@ -6,15 +6,10 @@
 
 # DataSets - html files, excel files, etc.. #
 ################################
-/DataSets/RawData/elogData/
-/DataSets/RawData/elogData_all/
-/DataSets/RawData/FailedElogData/
-/DataSets/RawData/spillLog/
-/DataSets/RawData/seq_LR/
-/DataSets/RawData/spillLogPage/
-/DataSets/RawData/ExcelFile/
-/DataSets/RawData/schedule-shift/
+/DataSets/RawData/
 
+!/DataSets/RawData/ShiftGuess.xlsx
+!/DataSets/RawData/eventTimeData/
 
 # personal folder #
 ################################
