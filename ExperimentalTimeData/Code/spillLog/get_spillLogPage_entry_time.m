@@ -1,4 +1,4 @@
-function [A] = get_spillLogPage_entry_time()
+function [time,run,datalog] = get_spillLogPage_entry_time()
 
 %Returns time of events for a given runNumber.  Looks for files in
 %dataDir,set early in this function.
@@ -8,9 +8,12 @@ function [A] = get_spillLogPage_entry_time()
 
 iMin = 142;
 iMax = 426;
-totalLength = 0;
-Alength = 10000;
-A = zeros(Alength,3);
+row = 10000;
+run = zeros(row,1);
+time = zeros(row,1);
+datalog = zeros(row,1);
+ j=0;
+
 
 for i = iMin:iMax
     
@@ -21,9 +24,9 @@ for i = iMin:iMax
     dirList=dir(dataDir);
     fileNameFound=false;
     
-    for j=1:length(dirList)
-        if ~isempty(regexp(dirList(j).name,fileNamePattern,'match'))
-            fileName=fullfile(dataDir,dirList(j).name);
+    for k=1:length(dirList)
+        if ~isempty(regexp(dirList(k).name,fileNamePattern,'match'))
+            fileName=fullfile(dataDir,dirList(k).name);
             fileNameFound=true;
         end
     end
@@ -42,12 +45,7 @@ for i = iMin:iMax
         fileID=fopen(fileName);
         %iterate over lines of html file
         lineText=fgetl(fileID);
-        runIndex = 100;
-        time = zeros(runIndex,1);
-        run = zeros(runIndex,1);
-        datalog = zeros(runIndex,1);
-        j=0;
-        
+        runIndex = 100;        
         B = zeros(runIndex,3);
         
         while ischar(lineText)
@@ -60,7 +58,6 @@ for i = iMin:iMax
             elseif ~isempty(regexp(lineText,datePattern, 'once'))
                 dateFound=1;
                 dateMatch=regexp(lineText,datePattern,'names','once');
-                %disp(dateMatch);
                 year=str2double(dateMatch.year);
                 if strcmp(dateMatch.month,'Jan')
                     month=1;
@@ -91,8 +88,7 @@ for i = iMin:iMax
                 hour=str2double(dateMatch.hour);
                 minute=str2double(dateMatch.minute);
                 time(j)=datenum(year,month,day,hour,minute,0);
-                C = [time(j),run(j),datalog(j)];
-                B(j,:) = C;
+                B(j,:) = [time(j),run(j),datalog(j)];
             end
             lineText=fgetl(fileID);
         end
@@ -108,16 +104,13 @@ for i = iMin:iMax
                               int2str(i));
             disp(dispString);
         end
-        totalLength = totalLength + j;
-        if any(B)==1
-            if i==1
-                A(1:j,:) = B(1:j,:);
-            else
-            A(1:totalLength,:)=vertcat(A(1:totalLength-j,:),B(1:j,:));
-            end
-        end
     end
 end
-A(totalLength+1:Alength,:) = [];
+time(j:row,:) = [];
+run(j:row,:) = [];
+datalog(j:row,:) = [];
+[time, index] = sortrows(time);
+run = run(index);
+datalog = datalog(index);
 
 end

@@ -3,12 +3,7 @@
 clear all;
 
 %get Entry Data from spilllLog summary page
-entry_data = get_spillLogPage_entry_time();
-
-entry_data = sortrows(entry_data,1);
-spillLogEntryTime_raw = entry_data(:,1);
-run_raw = entry_data(:,2);
-dataLog_raw = entry_data(:,3);
+[spillLogEntryTime_raw,run_raw,dataLog_raw] = get_spillLogPage_entry_time();
 
 iMax = numel(spillLogEntryTime_raw);
 spillLogEntryTime = zeros(iMax,1);
@@ -16,7 +11,7 @@ run = zeros(iMax,1);
 dataLog = zeros(iMax,1);
 j = 0;
 
-%use only data from 0ct 7th,2010 to Nov 116th 2011 (run 21218~29359),
+%use only data from 0ct 7th,2010 to Nov 16th 2011 (run 21218~29359),
 %exclude data with same entry time
 for i = 1:iMax
     if run_raw(i) >= 21218 && run_raw(i) <=29359
