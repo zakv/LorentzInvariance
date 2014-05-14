@@ -10,12 +10,12 @@ function tobj = spillLog()
 
 
 oldDir = cd('../DataSets/');
-data_obj = load('spillLogData');
+data_obj = load('spillLogEntryTimeData');
 cd(oldDir);
 
 run_g = data_obj.run;
-ID_g = data_obj.ID;
-entryTime_g = data_obj.entryTime;
+ID_g = data_obj.dataLog;
+entryTime_g = data_obj.spillLogEntryTime;
 
  
 tobj = public();
