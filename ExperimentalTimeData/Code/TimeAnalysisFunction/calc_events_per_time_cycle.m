@@ -33,7 +33,7 @@ end
 %check times which are out of cycle
 for i = 1:iMax
     if shiftFound(i) == false && ~isnan(time(i))
-            dispstr = ['event ',datestr(time(i)),' is out of shift'];
+            dispstr = ['time ',datestr(time(i)),' is out of cycle'];
             disp(dispstr);
     end
 end
