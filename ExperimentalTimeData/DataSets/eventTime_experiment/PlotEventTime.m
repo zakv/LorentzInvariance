@@ -4,6 +4,6 @@ eventTime = successful.eventTime('utc','all','all');
 cd(oldDir);
 
 %plot
-oldDir = cd('../../Code/TimeAnalysisFunction/');
+oldDir = cd('../../Code/PlotFunction/');
 plot_time_date(eventTime);
 set_for_time_graph();
