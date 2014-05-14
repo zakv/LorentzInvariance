@@ -2,8 +2,8 @@ function [] = set_for_time_graph()
 %Sets plot for time distribution(clock time from 0am against date)
 
 hold on
-xmin = 734351; %datenum(2010,8,1,0,0,0);
-xmax = 734869; %datenum(2012,1,1,0,0,0);
+xmin = datenum(2011,9,1,0,0,0); %datenum(2010,8,1,0,0,0);
+xmax = datenum(2011,12,1,0,0,0); %datenum(2012,1,1,0,0,0);
 xlim([xmin xmax]);
 
 set(gca, 'YDir','rev')
