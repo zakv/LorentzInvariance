@@ -67,16 +67,6 @@ A bound on the temporal variation of the antihydrogen charge is performed by com
 
 The full data set consists of the annihilation times and $z$-values (position along trap axis) from ALPHA's trapping attempts.  Define $f(t)$ to be a function that maps times of $\bar{H}$ annihilations to the $z$ position of those annihilations.  To be continued \ldots
 
-\begin{figure}
-  \centering
-  \subfigure[\ Full Domain of CDF]{
-  \includegraphics[scale=0.3]{CDF_Interpolation_Plot1.eps}}
-  \subfigure[\ Region of Interest]{
-  \includegraphics[scale=0.3]{CDF_Interpolation_Plot2.eps}}
-  \caption{Graphical depiction of the annihilation $z$ value selection algorithm.  An empirical CDF is generated for several different charges.  Two of such CDFs are shown with linear interpolation (blue solid curves).  When a $z$ position is desired for a given charge, a random value, here shown as 0.66, is picked and the values of the inverse CDFs, which can be read off of the $x$-axis here, are determined (green dashed lines).  The weighted average is then taken to give the $z$ value for the desired charge (red dash-dot line).  Here the charge is closer in value to the charge giving the right CDF than the left CDF.}
-  \label{fig:z_interpolation}
-\end{figure}
-
 \subsection*{Time Selection}
  The time of antihydrogen annihilation events where sampled in accordance with estimations of $\sim 1900$  trial runs which data was collected in 2010 and 2011 to simulate the time of those 386 events which charge was eligible to be detected.
  
@@ -98,7 +88,25 @@ The starting time of the decided number of  successful runs was allocated within
 \subsection*{Position Selection}
 Creation of pseudo-data sets requires an algorithm capable of generating $z$ positions of $\bar{H}$ annihilations for arbitrary charge values.  This is achieved by randomly sampling an approximated inverse CDF of the annihilation locations along the trap axis for the given charge.
 
-Using the symplectic integrator discussed in Ref. \onlinecite{amol:14a}, a list of annihilation $z$ coordinates is created for both quip directions for several different charges.  These lists are then adjusted to account for effects from detector smearing and missed detections due to cosmic ray filtering criteria, also discussed in Ref. \onlinecite{amol:14a}.  This provides empirical CDFs of simulated annihilations for various charges.  A simulated $z$ value for these charges can be chosen by selecting a random value from a uniform distribution on the interval (0,1), then determining the associated $z$ value by linearly interpolating the inverse CDF.  For charges between the discrete list of values for which the symplectic integrator has provided results, $z$ positions can be assigned by performing the above interpolation on the two neighboring empirical CDFs using the same random value, then further interpolating by taking a weighted average of the two results.  The weights are chosen to provide a linear interpolation between the two sampled charge distributions.  The process is summarized in Fig. \ref{fig:z_interpolation}.
+Using the symplectic integrator discussed in Ref. \onlinecite{amol:14a}, a list of annihilation $z$ coordinates is created for both quip directions for several different charges $\{q_i\}$, indexed in order of increasing charge.  These lists are then adjusted to account for effects from detector smearing and missed detections due to cosmic ray filtering criteria, also discussed in Ref. \onlinecite{amol:14a}.  For each charge $q_i$, let $D_{q_i}(z)$ denote the linear interpolation of the distribution's normalized CDF for a given direction (either left or right).  Two $D_{q_i}(z)$ are depicted in Fig. \ref{fig:z_interpolation} (blue solid lines).  Furthermore, let $D^{-1}_{q_i}(r)$ denote the inverse of $D_{q_i}(z)$.  For any one of the $q_i$, a random annihilation position $z_0$ is chosen by selecting a random value $r_0$ in the interval $(0,1)$, then setting $z_0=D^{-1}_{q_i}(r_0)$.
+
+For a charge $q$ between the discrete $q_i$, let $q_k$ denote the $q_i$ with the largest value less than $q$.  Then $q_{k+1}$ will be the $q_i$ with the least value greater than $q$.  A random annihilation position for this $q$ is chosen by first selecting a random value $r_0$ in the interval $(0,1)$ as before, then calculating $z_0$ from Eqn. \ref{eqn:q_interpolation}.  The weights $(q_{k+1}-q)$ and $(q-q_k)$ are chosen to provide a linear interpolation between the two inverse CDFs.  The process is summarized in Fig. \ref{fig:z_interpolation}.
+
+\begin{equation}
+z_0=\frac{D^{-1}_{q_k}(r_0)*(q_{k+1}-q) +
+ D^{-1}_{q_{k+1}}(r_0)*(q-q_k)}{q_{k+1}-q_k}
+\label{eqn:q_interpolation}
+\end{equation}
+
+\begin{figure}
+  \centering
+  \subfigure[\ Full Domain of CDF]{
+  \includegraphics[scale=0.3]{CDF_Interpolation_Plot1.eps}}
+  \subfigure[\ Region of Interest]{
+  \includegraphics[scale=0.3]{CDF_Interpolation_Plot2.eps}}
+  \caption{Graphical depiction of the annihilation $z$ value selection algorithm.  Empirical CDFs are generated for several different charges $q_i$ and then linearly interpolated to give $D_{q_i}(z)$.  Two such $D_{q_i}(z)$ are shown (blue solid curves).  When a $z$ position is desired for a given charge $q$, a random value $r_0$, here shown as 0.66, is picked and the values of the inverse CDFs $D^{-1}_{q_i}(r_0)$, which can be read off of the $x$-axis here, are determined (green dashed lines).  The weighted average is then taken to give the sampled $z$ value for $q$ (red dash-dot line).  Here $q$ is closer in value to $q_{k+1}$ than $q_k$.}
+  \label{fig:z_interpolation}
+\end{figure}
 
 \begin{acknowledgments}
 To be continued\ldots
