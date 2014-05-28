@@ -68,21 +68,19 @@ A bound on the temporal variation of the antihydrogen charge is performed by com
 The full data set consists of the annihilation times and $z$-values (position along trap axis) from ALPHA's trapping attempts.  Define $f(t)$ to be a function that maps times of $\bar{H}$ annihilations to the $z$ position of those annihilations.  To be continued \ldots
 
 \subsection*{Time Selection}
- The time of antihydrogen annihilation events where sampled in accordance with estimations of $\sim 1900$  trial runs which data was collected in 2010 and 2011 to simulate the time of those 386 events which charge was eligible to be detected.
- 
- Here we define a run as a operation for one antihydrogen(s) trapping trial. Dozens of runs were conducted within 128 of 4 $\sim$ 17 hours time schedules when ALPHA were able to access the Antiproton Decelerator and actually tried to trap antyhidrogens. Since we have clock time information of the time of annihilation events in order of a second, mili second of time difference between more than one antyhidrogen annihilations  in a run were ignored.
- 
- Within the 128 time spans, the beginning and the time length of the period we can start running the operation, a standby time period, was predicted, since it usually takes time until we become ready for running apparatus after the given AD schedule has been started. The beginning of the time was estimated by Poisson process, which parameter $\lambda$ was 9.3289 /day  with +8.36 minutes shifted, and the time length was estimated by gaussian distribution where the average being 0.2320+-0.1241 day. The annihilation events can only occur within this time period. 
- 
- Then the number of runs succeeded in trapping antihydrogen(s) in the standby time span, and the number of the trapped antihydrogens for each run were predicted using Poisson process. Poisson parameters were estimated from the fact that the 386 successful events were observed in 320 runs within 29.6966 days of the total standby time span in the two years of experiment. 
-The starting time of the decided number of  successful runs was allocated within the standby time span randomly. The annihilation event time was finally decided by adding 10 minutes of deliberately decided operation time until annihilation happens, to the starting time of the run. The example of times selected with this method is shown in Fig.\ref{fig:eventTime_date_sim}.
+ The annihilation time of events for simulation was randomly selected from the time span when we were able to operate trapping trials, which were chosen based on the statistical data analysis of $\sim 1900$  trapping trials operated in 2010 and 2011.
+
+ The trial time spans were assumed to be from when the first trial trap started to when the last one started within the fixed  4 $\sim$ 17 hours of time shift when we can access to Antiproton Decelerator. The first and last trial trap time were predicted by Poisson process since the former time relative to when the shift starts, and the latter time relative to when the shift ends show exponential distribution. Then the operation time of 320 $\pm$ 18 trapping trials succeeded in trapping $\bar{H}$ annihilation(s) were randomly selected within the time span. The time duration of the trapping trial was fixed to 10.00 minutes based on the experiment. The number of annihilation events for each successful trapping trial were chosen from the fact that the probability of getting one event per a trapping trial predicted by Poisson statistics was $\lambda=0.387532$. Note that mili seconds of time difference between more than one $\bar{H}$ annihilations in a same trapping trial were ignored since we have time information of annihilation events in order of a second. The example of time selection with this method is shown in Fig.\ref{fig:eventTime_date_sim}.
  
 \begin{figure}
-  \includegraphics[scale=0.6]{eventTime_sim_example.eps}
-  \caption{Time table for one example of time selection in Coordinated Universal Time. The time span when the experiment for trapping antihydrogen are ready to be started (yellow boxes) was chosen regarding to the actual time period when we became able to access to AD (green lines) . Then the number of runs succeeded in trapping antihydrogen, and the starting time  of the run as well as the duration time (red boxes) was chosen. At the time the bottom of red box shows, one to several antihydrogen annihilations annihilates.}
+\centering
+  \subfigure[\ Experimental data]{
+  \includegraphics[scale=0.5]{eventTimeTable_experiment_example.eps}}
+  \subfigure[\ Example time selection]{
+  \includegraphics[scale=0.5]{eventTime_sim_example.eps}}
+  \caption{The time table of (a) the experimental data and (b) example time selection in Coordinated Universal Time against day. The time span when we were able to run trapping trials (yellow boxes) was chosen within each assigned shift schedule (white boxes). Then within the trial time span, the time of 320$\pm$18 successful trapping trials (red boxes) were randomly chosen. We detected at least one annihilation event at the end of successful trapping trials (the bottom of red boxes).}
   \label{fig:eventTime_date_sim}
 \end{figure}
-
 
 
 \subsection*{Position Selection}
