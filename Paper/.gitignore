@@ -12,3 +12,7 @@
 *.out
 *.ps
 LorentzInvarianceNotes.bib
+
+#personal files #
+#################
+makefile
