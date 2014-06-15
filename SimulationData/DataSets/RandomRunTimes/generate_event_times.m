@@ -1,4 +1,4 @@
-function [eventTimes] = generate_event_times(random_generator)
+function [eventTimes] = generate_event_times()
 %for plotting time tables...[shiftCycle,operationCycle_sim,runCycle]
 
 %Generates eventTimes
@@ -33,8 +33,8 @@ n_runs_exp = numel(unique(successfulEventTime));%number of runs (experiment)
 n_cycle = length(operationCycle);%number of shift cycles
 
 %need for estimating parameters
-%shiftStart_to_firstRun = operationCycle(:,1) - shiftCycle(:,1);%for estimation and plot
-%lastRun_to_shiftEnd = shiftCycle(:,2) - operationCycle(:,2);
+shiftStart_to_firstRun = operationCycle(:,1) - shiftCycle(:,1);%for estimation and plot
+lastRun_to_shiftEnd = shiftCycle(:,2) - operationCycle(:,2);
 %firstRun_to_lastRun = operationCycle(:,2) - operationCycle(:,1);
 
 %------------estimate parameters-------------
@@ -43,18 +43,18 @@ lambda_n_Hbars=0.387532;%maximum likelihood estimate
 
 %probability of getting first run in a time
 start_estimates_poisson = [0.0058050, 9.3289];
-        %fit_shifted_poisson(shiftStart_to_firstRun);
+  %fit_shifted_poisson(shiftStart_to_firstRun);
 
 %estimates time from when last trial run starts to shift end
-params_exp = [-0.00932907, 41.7865];
-    %fit_shifted_exponential(lastRun_to_shiftEnd);
+end_estimates_poisson = [-0.00932907, 41.7865];
+  %fit_shifted_poisson(lastRun_to_shiftEnd);
     
 %time from when run starts to ends; exactly 10 min
 runStart2End = 10/60/24;
 
 %--------1. decides number of runs--------------
 rms = sqrt(n_runs_exp);
-rand_val = random_generator.rand(1);
+rand_val = rand(1);
 n_runs_sim = round(get_normal_dis(rand_val, n_runs_exp, rms));
 
 %------2. decides operation cycle------------------
@@ -62,18 +62,19 @@ n_runs_sim = round(get_normal_dis(rand_val, n_runs_exp, rms));
 shiftStart_to_firstRun_sim = zeros(n_cycle,1);
 operationCycle_sim = zeros(n_cycle,2);
 firstRun_to_lastRun_sim = zeros(n_cycle,1);
+lastRun_to_shiftEnd_sim = zeros(n_cycle,1);
 
 for j = 1:n_cycle
     %Calculates time when first trial run starts in the cycle
-    rand_val = random_generator.rand(1);
+    rand_val = rand(1);
     shiftStart_to_firstRun_sim(j) = get_shifted_exponential(rand_val,...
         start_estimates_poisson(1),start_estimates_poisson(2));
     operationCycle_sim(j,1) = shiftCycle(j,1) + shiftStart_to_firstRun_sim(j);
     
     %Calculates time when last trial run starts in the cycle
-    rand_val = random_generator.rand(1);
-    lastRun_to_shiftEnd_sim = get_shifted_exponential(rand_val,params_exp(1),params_exp(2));
-    operationCycle_sim(j,2) = shiftCycle(j,2) - lastRun_to_shiftEnd_sim;
+    rand_val = rand(1);
+    lastRun_to_shiftEnd_sim(j) = get_shifted_exponential(rand_val,end_estimates_poisson(1),end_estimates_poisson(2));
+    operationCycle_sim(j,2) = shiftCycle(j,2) - lastRun_to_shiftEnd_sim(j);
     
     %time length from first to last trial run
     firstRun_to_lastRun_sim(j) = operationCycle_sim(j,2) - operationCycle_sim(j,1);
@@ -99,7 +100,7 @@ for m = 1:n_runs_sim
     failed = 1;
     while failed == 1
         %decides time when run starts within the operation time (relative to the ope time)
-        rand_val = random_generator.rand(1);
+        rand_val = rand(1);
         runTime_rel = rand_val*totalOperationTime_sim;
 
         %Calculates which cycle the runTime_rel is in
@@ -133,7 +134,7 @@ for m = 1:n_runs_sim
     eventTime = runStartTimes(m) + runStart2End;
     
     %number of events per run
-    rand_val = random_generator.rand(1);
+    rand_val = rand(1);
     n_events_per_run(m) = get_n_Hbars(rand_val,lambda_n_Hbars);
     %reassign the array of event times
     eventTimes(row_index:row_index+n_events_per_run(m)-1) = eventTime;
@@ -156,6 +157,37 @@ disp(dispstr);
 dispstr = ['total number of event time is ',num2str(n_events),' (experiment:386)'];
 disp(dispstr);
 %}
+
+%-------------plot experimental & simulation data --------------------
+%plot time from when shift starts to when first run starts
+%hist
+
+figure
+x = (-0.1:0.05:1);
+y1 = hist(shiftStart_to_firstRun,x); 
+y2 = hist(shiftStart_to_firstRun_sim,x);
+D = [y1;y2];
+bar(x,D',1.4);
+xlim([-0.1 0.8]);
+xlabel('day')
+ylabel('count')
+legend('experiment','simulation')
+%title('time from when shift starts to when first run starts');
+
+%plot time from when first run starts to when last run starts
+%hist
+figure
+x = (-0.1:0.020:0.8);
+y1 = hist(lastRun_to_shiftEnd,x); 
+y2 = hist(lastRun_to_shiftEnd_sim,x);
+D = [y1;y2];
+bar(x,D',1.4);
+xlim([-0.1 0.8]);
+xlabel('day')
+ylabel('count')
+legend('experiment','simulation')
+%title('time from when last run starts to when shift ends');
+
 
 %{
 %----------------plot events time diagram-------------------
@@ -194,7 +226,7 @@ while running_probability<rand_val_scaled
     running_probability=running_probability+probability(n_Hbars);
 end
 end
-    
+ 
 %{
 function [estimates] = fit_shifted_poisson(data)
 %fits shifted poisson distribution by using probability function

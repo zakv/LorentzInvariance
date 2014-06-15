@@ -70,7 +70,17 @@ The full data set consists of the annihilation times and $z$-values (position al
 \subsection*{Time Selection}
  The annihilation time of events for simulation was randomly selected from the time span when we were able to operate trapping trials, which were chosen based on the statistical data analysis of $\sim 1900$  trapping trials operated in 2010 and 2011.
 
- The trial time spans were assumed to be from when the first trial trap started to when the last one started within the fixed  4 $\sim$ 17 hours of time shift when we can access to Antiproton Decelerator. The first and last trial trap time were predicted by Poisson process since the former time relative to when the shift starts, and the latter time relative to when the shift ends show exponential distribution. Then the operation time of 320 $\pm$ 18 trapping trials succeeded in trapping $\bar{H}$ annihilation(s) were randomly selected within the time span. The time duration of the trapping trial was fixed to 10.00 minutes based on the experiment. The number of annihilation events for each successful trapping trial were chosen from the fact that the probability of getting one event per a trapping trial predicted by Poisson statistics was $\lambda=0.387532$. Note that mili seconds of time difference between more than one $\bar{H}$ annihilations in a same trapping trial were ignored since we have time information of annihilation events in order of a second. The example of time selection with this method is shown in Fig.\ref{fig:eventTime_date_sim}.
+ The trial time spans were assumed to be from when the first trial trap started to when the last one started within the fixed  4 $\sim$ 17 hours of time shift when we can access to Antiproton Decelerator. The first and last trial trap time were predicted by Poisson process since the former time relative to when the shift starts, and the latter time relative to when the shift ends show exponential distribution. The distributions of these two kinds of simulated time are shown in Fig.\ref{fig:time_distribution} with experimental data overlaid. Then the operation time of 320 $\pm$ 18 trapping trials succeeded in trapping $\bar{H}$ annihilation(s) were randomly selected within the time span. The time duration of the trapping trial was fixed to 10.00 minutes based on the experiment. The number of annihilation events for each successful trapping trial were chosen from the fact that the probability of getting one event per a trapping trial predicted by Poisson statistics was $\lambda=0.387532$. Note that mili seconds of time difference between more than one $\bar{H}$ annihilations in a same trapping trial were ignored since we have time information of annihilation events in order of a second. The example of time selection with this method is shown in Fig.\ref{fig:eventTime_date_sim}.
+
+\begin{figure}
+\centering
+  \subfigure[\ Time from when the first trial trap was operated to when the first shift started]{
+  \includegraphics[scale=0.5]{startTime_distribution.eps}}
+  \subfigure[\ Time from when the last shift started to when the last trial trap was operated.]{
+  \includegraphics[scale=0.5]{endTime_distribution.eps}}
+  \caption{ Distributions of simulated time spans overlaid with the experimental data. }
+  \label{fig:time_distribution}
+\end{figure}
  
 \begin{figure}
 \centering
