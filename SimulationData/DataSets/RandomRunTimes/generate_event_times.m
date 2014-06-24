@@ -1,4 +1,4 @@
-function [eventTimes] = generate_event_times()
+function [eventTimes] = generate_event_times(random_generator)
 %for plotting time tables...[shiftCycle,operationCycle_sim,runCycle]
 
 %Generates eventTimes
@@ -54,7 +54,7 @@ runStart2End = 10/60/24;
 
 %--------1. decides number of runs--------------
 rms = sqrt(n_runs_exp);
-rand_val = rand(1);
+rand_val = random_generator.rand(1);
 n_runs_sim = round(get_normal_dis(rand_val, n_runs_exp, rms));
 
 %------2. decides operation cycle------------------
@@ -66,13 +66,13 @@ lastRun_to_shiftEnd_sim = zeros(n_cycle,1);
 
 for j = 1:n_cycle
     %Calculates time when first trial run starts in the cycle
-    rand_val = rand(1);
+    rand_val = random_generator.rand(1);
     shiftStart_to_firstRun_sim(j) = get_shifted_exponential(rand_val,...
         start_estimates_poisson(1),start_estimates_poisson(2));
     operationCycle_sim(j,1) = shiftCycle(j,1) + shiftStart_to_firstRun_sim(j);
     
     %Calculates time when last trial run starts in the cycle
-    rand_val = rand(1);
+    rand_val = random_generator.rand(1);
     lastRun_to_shiftEnd_sim(j) = get_shifted_exponential(rand_val,end_estimates_poisson(1),end_estimates_poisson(2));
     operationCycle_sim(j,2) = shiftCycle(j,2) - lastRun_to_shiftEnd_sim(j);
     
@@ -100,7 +100,7 @@ for m = 1:n_runs_sim
     failed = 1;
     while failed == 1
         %decides time when run starts within the operation time (relative to the ope time)
-        rand_val = rand(1);
+        rand_val = random_generator.rand(1);
         runTime_rel = rand_val*totalOperationTime_sim;
 
         %Calculates which cycle the runTime_rel is in
@@ -134,7 +134,7 @@ for m = 1:n_runs_sim
     eventTime = runStartTimes(m) + runStart2End;
     
     %number of events per run
-    rand_val = rand(1);
+    rand_val = random_generator.rand(1);
     n_events_per_run(m) = get_n_Hbars(rand_val,lambda_n_Hbars);
     %reassign the array of event times
     eventTimes(row_index:row_index+n_events_per_run(m)-1) = eventTime;
