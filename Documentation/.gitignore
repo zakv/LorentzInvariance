@@ -5,6 +5,8 @@
 *.gz
 *.bak
 *.toc
+*.bbl
+*.blg
 
 # Zak's backup documenation #
 #  (from before using OOP)  #
