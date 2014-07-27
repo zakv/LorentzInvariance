@@ -37,33 +37,33 @@
 \affiliation{Lawrence Berkeley National Laboratory, Berkeley, CA 94720, USA}
 
 \begin{abstract}
-Data on locations of antihydrogen annihilations in the ALPHA trap is retrospectively analyzed for temporal variation due to violations of Lorentz Invariance as the Earth rotates and orbits the sun.  To be continued\ldots
+The advent of precision measurements on antihydrogen has opened new doors for tests of fundamental physics in the antimatter sector.  This paper retrospectively analyzes data on locations of antihydrogen annihilations in the ALPHA trap in a search for temporal variation of its charge, which would constitute a violation of Lorentz Invariance.
 \end{abstract}
 
 \maketitle
 
 \section{Introduction}
-General relativity purports that a particle's charge is independent of the observer's reference frame.  Although the theoretical underpinnings of this prediction are strong, experimental verification of fundamental predictions of physics are critical to assessing the axioms necessary to develop such theory.  In this spirit, we have performed a retrospective analysis on the data collected during the ALPHA experiment's runs in 2010 and 2011 to examine it for indications of Lorentz violation in the antimatter sector.
+General relativity purports that a particle's charge is independent of the observer's reference frame.  Although the theoretical underpinnings of this prediction are strong, experimental verification of fundamental predictions of physics are critical to assessing the axioms necessary to develop such theory.  In this spirit, we have performed a retrospective analysis on the data collected during the ALPHA experiment's runs in 2010 and 2011 to examine it for indications of a varying antihydrogen charge as the trap moves through space.
 
-Proposed violations are expected to be correlated with the velocity and/or orientation of the trap relative to a preferred frame.  As is common in searches for Lorentz violation, speed is measured relative to the rest frame of the CMB.  The Earth's CMB speed varies by $\sim\!\!15\%$ as it orbits the sun (see Fig \ref{fig:true_event_distribution}).
+Over 386 antihydrogens in 320 experimental runs passed all detection criteria, hereafter referred to as cuts\cite{amol:14a}.  Only the antihydrogens that passed the cuts are included in the analysis.  The times of these detection events were distributed over 405 days and over all hours of the day (see Fig.\ref{fig:experimental_t_distributions}), which is important for the analysis as violations would likely be correlated with the CMB velocity and/or orientation of the trap relative to a preferred frame.  With this in mind, we search for a antihydrogen charge oscillation with a period of one year or one sidereal day.
+
+The full data set consists of the times and $z$-positions (along trap axis) of antihydrogen annihilations after ALPHA's confining magnetic trap is quenched.  During the trapping run, a series of axial electric fields called kicks are sequentially applied to the trap to drive unbound antiprotons out and leave only antihydrogen behind. If the antihydrogen atoms have a charge, their trajectories will be perturbed by these fields and the distribution of their annihilations will be shifted.  If the charge is time-dependent, then the mean annihilation position will oscillate as well.  The Fourier coefficients of the annihilation positions as a function of time are measured experimentally.  Simulations are then performed to determine the expected distribution of these Fourier coefficients for charge oscillations of various magnitudes.  Comparing the experimental value to these distributions allows bounds to be placed on the magnitude of the charge oscillation.
 
 \begin{figure}
-  \includegraphics[scale=0.5]{True_Event_Distribution.eps}
-  \caption{The CMB speed of the Earth over the period of time during which ALPHA was running.  Times of the $\bar{H}$ annihilation events are marked.}
+  \subfigure[\ Event Dates]{
+  \includegraphics[scale=0.35]{True_Event_Distribution.eps}
   \label{fig:true_event_distribution}
+  }
+  \subfigure[\ Event Times]{
+  \includegraphics[scale=0.35]{eventTime_date_experiment.eps}
+  \label{fig:eventTime_date_experiment}}
+  \caption{\subref{fig:true_event_distribution}: The CMB speed of the Earth with the dates of $\bar{H}$ annihilation events marked.  \subref{fig:eventTime_date_experiment}: The times of day of the antihydrogen events (times are in Coordinated Universal Time).
+  }
+  \label{fig:experimental_t_distributions}
 \end{figure}
-
-Over 386 antihydrogens in 320 experimental runs passed all detection criteria, hereafter referred to as cuts\cite{amol:14a}.  Only the antihydrogens that passed the cuts are included in the analysis.  The times of these events were distributed over 405 days and over all hours of the day, (see Fig.\ref{fig:eventTime_date_experiment}), which covers both annual and daily cycles.
-
-\begin{figure}
-  \includegraphics[scale=0.6]{eventTime_date_experiment.eps}
-  \caption{The hour when antihydrogen events detected over the period of time during which ALPHA was running in Coordinated Universal Time.}
-  \label{fig:eventTime_date_experiment}
-\end{figure}
-
 
 \section{Methods Summary}
-A bound on the temporal variation of the antihydrogen charge is performed by comparison of a test statistic $S$, constructed to approximate the magnitude of a Fourier coefficient, of the collected data to simulated distributions of this statistic.  A statistically significant nonzero value of $S$ would indicate a violation of Lorentz Invariance.
+A bound on the temporal variation of the antihydrogen charge is performed by comparison of a test statistic $S$, constructed to approximate the magnitude of a Fourier coefficient, between the collected data and simulated distributions of this statistic.  A statistically significant nonzero value of $S$ would indicate a violation of Lorentz Invariance.
 
 The full data set consists of the annihilation times and $z$-values (position along trap axis) from ALPHA's trapping attempts.  Define $f(t)$ to be a function that maps times of $\bar{H}$ annihilations to the $z$ position of those annihilations.  To be continued \ldots
 
