@@ -573,6 +573,161 @@ This function returns the complex Fourier Coefficient $A_1$, given three argumen
 This function uses the method described in Section IV of Charman\_sinusoid\_estimator.pdf.  It  is best suited for period='day' because it requires the data to be well spread throughout the period and assumes a fixed frequency.  If the input data array is empty, this function returns NaN.
 
 
+\chapter{Functions in ExperimentalTimeData/Code/}
+Following functions except those in TimeAnalysisFunction/ and PlotFunction/ folders use regular expressions to get data from elog or spillLog which are in html format. These html files are downloaded from ALPHA web page. If you need this data, contact Fumika (fumika21@gmail.com). The folder which contains all these data should be located at ExperimentalTimeData/DataSets/RawData/ directory. However, since the result data of the following codes are stored at ExperimentalTimeData/DataSets, you don't need them unless you want to recalculate.
+
+\section{attempted\_run/GenerateAttemptedRunData.m}
+\label{sec:genAttempted}
+This code generates a data file attemptedRunData.mat at ExperimentalTimeData/DataSets/ directory. The data file contains two types of data, the data of runs that tried to trap $\bar{H}$, and the data of runs that tried to trap $\bar{H}$ and also conducted quench dump activity. The latter type of data includes '\_quench' in the name. The dataset contains run number (run), dataLog number(dataLog), spillLog ID(spillLogID) of runs. It also contains the time information; the time when the run starts (startTime), the time when the run ends which is Entry time of  
+spillLog data (endTime) in Coordinated Universal Time, and the time between startTime and endTime only for the runs which had quench dump activity (start2end\_quench). You can obtain these data by using attempted\_run() function (See section \ref{sec:attempted}) This code contains following functions.
+
+\subsection{/get\_entryTime\_startTime.m}
+\label{subsec:getentrytime}
+This function gets the entry time and the first clock time ($\equiv$ start time) which are shown on the either elog data or spillLog data using regular expressions for the run(s) you choose. It takes three parameters: logID (either dataLog number or spillLog ID) (array), run number (array), and log type (string). Log type is either 'elogData\_all' or 'dataLog\_all' to get dataLog, and 'spillLog' to get spill log. It returns 2 arrays: entry time, and start time in local(Switzerland) time's date number.
+
+\subsection{/find\_quench\_dump.m}
+This function look for quench dump activity in either data log or spill log using regular expressions. If it finds, it returns 1. If not, it returns 0. The parameters it takes is as same as function get\_entryTime\_startTime.m (See Section \ref{subsec:getentrytime}). 
+
+\subsection{/get\_attempted\_run.m}
+This function returns run number if the run of the given dataLog number attempted to trap $\bar{H}$. If not, it returns NaN. We assume the run attempted to trap $\bar{H}$ if the subject of the run contains the word 'trapping' or 'attempt'.
+
+
+\section{successful\_run/GenerateEventTimeData.m}
+This code generates a data file EventTimeData.mat at ExperimentalTimeData/DataSets/ directory. The data file contains run number, event time in Swiss local(standard) time and, UTC, and julian date, and also one digit from 1 to 4 which represents the method used to calculate event time: using get\_event\_time\_via\_mcp.m function (1), using get\_event\_time\_via\_csi.m function (2), using get\_event\_time\_via\_matt.m funciton (3), or using get\_mcp\_time.m function (4). To get the data, use successful\_run() function (See section \ref{sec:successful}). Overall, the event time is accurate to a minute because of the accuracy of the following functions. This code contains the folowing functions.
+
+\subsection{/get\_event\_time\_via\_csi.m, /get\_event\_time\_via\_mcp.m, /get\_event\_time\_via\_matt.m, /get\_mcp\_time.m}
+get\_event\_time\_via\_csi.m, get\_event\_time\_via\_mcp.m, and get\_event\_time\_via\_matt.m functions all get event times (times when $\bar{H}$ annihilation was detected) of a given run number, but calculate the time in a different way. First function refers time when MCP image was taken, and the second one refers CsI2 time which are shown in elog data. For third function, please look at 'MethodMattTime.pdf' in ExperimentalTimeData/DataSets/DawData/EventTime/ directory for the method. If the function cannot calculate time, it returns 'NaN'\footnote{This happens a lot. This is why there are three methods for calculating event time}. As far as we know, there is 2.678 seconds time difference at maximum between times calculated by first two functions. Times calculated by last function have 87.6 seconds time difference at maximum compare to event\_time\_via\_csi. 'get\_event\_time\_via\_matt.m' requires 'EventTimeData\_2010\_matt.mat' data instead of elog data which is located at ExperimentalTimeData/DataSets/DawData/EventTime/ directory. get\_mcp\_time.m function get the time when mcp image was taken. This time is not exactly the event time, but close to it. As far as we know, it is accurate to a minute before 10/4/2011, four minutes from the day compare to the first two functions. The maximum difference is 4.04 minutes.
+
+\subsection{/get\_event\_time.m}
+This function is the combination of the above four functions. It tries to get event time using those functions in turn until it gets the value.
+
+
+\section{shift\_cycle/GenerateGuessedShiftTimeData.m}
+This code generates a data file ShiftTimeData.mat at ExperimentalTimeData/DataSets/ directory. The file contains ALPHA's Antiproton Decelerator schedule guessed form thousands of runs (the raw data is in ExperimentalTimeData/DataSets/RawData/ShiftGuess.xlsx') because the actual schedule didn't follow the distributed schedule sheets which are stored at ExperimentalTimeSchedule/DataSets/RawData/ADSchedule. 'attemptedShiftCycle' contains only the schedule when there was runs attempted to trap $\bar{H}$, and 'successfulShiftCycle' contains only the schedule where there was runs succeeded in trapping $\bar{H}$. Both of them are two column array data that contains the time when the schedule starts and ends in local time. To use the data, use shift\_cycle() function (See Section \ref{sec:shift}).
+
+\section{spillLog/GenerateSpillLogEntryTimeData.m}
+This code generates data file 'spillLogEntryTimeData' at ExperimentalTimeData/DataSets/ directory. It contains spillLog number, its run number, and the Entry time 
+of all spillLogs from Oct 7th, 2010 to Nov 16th, 2011. To use the data, use spillLog() function (See Section \ref{sec:spillLog}). In this code, the following function is included.
+
+\subsection{/get\_spillLogPage\_entry\_time.m}
+This code gets information of runs written in spill log page, a summary of spill log. It returns 3 arrays, entry time, run number, and datalog number of runs listed in the summary log pages.
+
+\chapter{Functions in ExperimentalTimeData/Code/PlotFunction/}
+
+\subsection{patch\_timeCycle\_data.m}
+This function gets a two-column array of time cycles, [time1, time2], and patches the area form time1 to time2 in clock time against date. The plot looks like a time table. 
+
+\subsection{plot\_time\_date.m}
+This function plots the clock time against date. The upper limit and lower limit of y axis is 0:00 and 24:00 respectively. It gets two parameters, an array of time, and the color in string e.g. 'r' (red), 'b' (blue).
+
+\subsection{plot\_time\_data\_lines.m}
+This function gets an array of times and plot a line of the time against date. For example you can use this function with patch\_timeCycle\_data.m and plot\_time\_date.m to plot a figure like Fig.\ref{time_plot}.
+
+\begin{figure}
+  \includegraphics[scale=0.6]{eventTime_sim_example.eps}
+  \caption{Example of using patch\_timeCycle\_data.m, plot\_time\_date.m, and plot\_time\_data\_lines.m functions.}
+  \label{time_plot}
+\end{figure}
+
+\subsection{set\_for\_time\_graph.m}
+This function sets limits, ticks, and label of the clock time plot against date. I recommend you to use this function after using above three functions to avoid the hustle of setting the figure. 
+
+\chapter{Functions in ExperimentalTimeData/Code/TimeAnalysisFunction/}
+\subsection{calc\_events\_per\_time\_cycle.m}
+This function gets an array of times and a two-column array (size a$\times$2) of time cycles, [time1, time2], and return an one-column array of number of runs within each time cycle (size a$\times$1) and a two-column array (size a$\times$2) of the earliest time and the latest time in each time cycles. Following is the example.
+
+\begin{verbatim}
+>> time = [0,1,7,8,9,11,13,15];
+>> fixedCycle = [0,8.5;13,14];
+>> [count,timeCycle] = calc_events_per_time_cycle(time,fixedCycle)
+
+count =
+
+     4
+     1
+
+
+timeCycle =
+
+     0     8
+    13    13
+\end{verbatim}
+
+%From here!!
+
+\subsection{st2utc\_ch.m}
+This function gets Geneva time (UTC+2 or +1) and return UTC (Coordinated Universal Time) considering daylight saving in MATLAB date number.
+
+
+
+
+\chapter{Data Set Classes in ExperimentalTimeData/Class/}
+Following functions are for getting data stored at ExperimentalTimeData/DataSets/ folder. 
+
+\section{attempted\_run()}
+\label{sec:attempted}
+This function gets data of runs that attempted to trap $\bar{H}$. See Section \ref{sec:genAttempted} for details of data you can get. Following is the example of getting data.
+
+\begin{verbatim}
+attempted = attempted_run();
+run = attempted.run();
+spillLog = attempted.spillLogID();
+startTime = attempted.startTime();
+endTime = attempted.endTime();
+run_quench = attempted.run_quench();
+dataLog_quench = attempted.dataLogID_quench();
+
+
+
+
+\end{verbatim}
+
+\section{successful\_run()}
+\label{sec:successful}
+
+
+This function provides you all necessary event time data that has been already calculated. It contains five nested functions, 'run', 'utc', 'utc\_jd', 'local', 'type'. Three data inputs are required; year of the data, data with Bias-Right or Bias-Left configuration, and data with accurate or rough event time. Since it calls data from 'EventTimeData.mat' file, the file should be located.This is the example code for running this function.\\
+\begin{verbatim}
+>> t = event_time();
+>> run2010R = t.run('2010','R',0); %get run numbers of 2010 Bias-Right data
+>> localTime2010R = t.local('2010','R',0); % get event times in Geneva time
+\end{verbatim}
+
+\noindent
+Input : (year, RorL, mode)\\
+\begin{tabular}{lcl}
+year & - & '2011', '2010' or 'all' (string). '2011' for 2011 year's data, '2010' for 2010 year's \\
+& & data, 'all' for both\\
+RorL & - & 'R', 'L', or 'all'. 'R' for Bias-Right data, 'L' for Bias-Left data, 'all' for both\\
+mode & - & 0 for rough event time data ( accurate to a few seconds)\\
+\end{tabular}
+Output : \\
+\begin{tabular}{lcl}
+event\_time/run & - & run numbers\\
+event\_time/utc & - &   event times in UTC (serial date number)\\
+event\_time/utc\_jd & - & event times in UTC (Julian Date)\\
+event\_time/local & - &  event times in Geneva time (serial date number)\\
+event\_time/type & - & 1 if the event time is calculated by function 'get\_event\_time\_via\_mcp.m' \\
+& & 2 if calculated by 'get\_event\_time\_via\_csi.m'\\
+& & 0 if calculated by 'get\_entry\_time.m'\\
+\end{tabular}\\
+Required data : EventTimeData.mat\\
+
+\section{shift\_cycle()}
+\label{sec:shift}
+
+\section{spillLog()}
+\label{sec:spillLog}
+
+
+
+
+\chapter{Data Directories in ExperimentalTimeData/DataSets}
+\section{AttemptedRunData.mat, ShiftTimeData.mat, spillLogData.mat, EventTimeData.mat}
+These data are created using functions stored at ExperimentalTimeData/Code/
+\section{eventTime\_experiment}
+\section{RawData}
+
 
 
 
