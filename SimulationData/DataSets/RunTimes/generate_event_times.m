@@ -1,6 +1,5 @@
 function [ event_times,n_left ] = generate_event_times(random_generator)
-%Need to change which random number generator is used.  Need to update the
-%lambda values.
+%Need to update the lambda values.
 
 %Returns a column vector of event times in Geneva time chosen to be Poisson
 %distributed over the estimated times during which the experiment was
