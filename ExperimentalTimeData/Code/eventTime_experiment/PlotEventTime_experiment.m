@@ -20,7 +20,7 @@ eventTime_local_l = eventTime_utc_l + datenum(0,0,0,1,0,0);
 
 %save data
 cd(oldDir);
-oldDir2 = cd('../../DataSets/eventTime_experiment/');
+oldDir2 = cd('../../DataSets/');
 save('eventTime_experiment','eventTime_utc','eventTime_utc_r','eventTime_utc_l',...
     'eventTime_local','eventTime_local_r','eventTime_local_l');
 cd(oldDir2);
